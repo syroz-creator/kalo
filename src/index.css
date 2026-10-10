@@ -35,6 +35,11 @@ html, body {
   overflow: hidden;
 }
 
+/* WebKit can exclude safe areas from dynamic units in Home Screen apps. */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  #root { height: var(--app-height, 100vh); }
+}
+
 /* iOS focuses smaller text fields by zooming the entire page. */
 #root :is(input, select, textarea, [contenteditable="true"]) {
   font-size: 16px;
