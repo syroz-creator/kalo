@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, Check, Loader2, RefreshCw, Upload } from 'lucide-react';
 import type { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
-import { getMealImage, normalizeMealAnalysis } from '../utils/mealAnalysis';
+import { analyzeMealPhoto } from '../services/mealApi';
 
 interface AiMealScannerProps {
   targetMeal: MealType;
@@ -30,12 +30,7 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     const controller = new AbortController(); request.current = controller;
     setPhoto(imageUrl); setAnalyzing(true); setError(''); setResult(null);
     try {
-      const image = getMealImage(imageUrl);
-      const response = await fetch('/api/analyze-meal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: image.data, mimeType: image.mimeType }), signal: controller.signal });
-      if (!response.headers.get('content-type')?.includes('application/json')) throw new Error(response.status === 413 ? 'This photo is too large. Choose a smaller photo and try again.' : 'The meal-scanning server could not be reached. Please try again shortly.');
-      const body = await response.json();
-      if (!response.ok || !body.success) throw new Error(body.error || 'Could not analyze this meal. Please try again.');
-      const data = normalizeMealAnalysis(body.data);
+      const data = await analyzeMealPhoto(imageUrl, controller.signal);
       if (controller.signal.aborted) return;
       setResult(data); setName(data.dishName);
       setNutrition({ calories: String(data.totalCalories), protein: String(data.totalProtein), carbs: String(data.totalCarbs), fat: String(data.totalFat) });
