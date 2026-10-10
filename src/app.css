@@ -1,5 +1,5 @@
-.app-root { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: #080808; padding: 0; }
-.kalo-shell { --bg: #15120d; --surface: #211b14; --border: #342c22; --text: #f5f1e8; --muted: #a89b85; --gold: #f9bc35; --orange: #ef9916; --track: #30281f; --water: #65a8bc; --protein: #db613c; --fat: #b1814d; position: relative; width: 100%; height: 100dvh; background: var(--bg); color: var(--text); overflow: hidden; letter-spacing: 0; font-size: 14px; }
+.app-root { height: 100%; display: flex; align-items: center; justify-content: center; background: #080808; padding: 0; }
+.kalo-shell { --bg: #15120d; --surface: #211b14; --border: #342c22; --text: #f5f1e8; --muted: #a89b85; --gold: #f9bc35; --orange: #ef9916; --track: #30281f; --water: #65a8bc; --protein: #db613c; --fat: #b1814d; position: relative; width: 100%; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; letter-spacing: 0; font-size: 14px; }
 .kalo-shell[data-theme="light"] { --bg: #f6f7f8; --surface: #fff; --border: #dfe1e4; --text: #211e19; --muted: #736c61; --gold: #b97606; --orange: #ed9a16; --track: #e9e6e1; --water: #39869a; --protein: #bf4e2d; --fat: #957044; }
 .kalo-shell button { cursor: pointer; }
 .kalo-shell button:disabled { opacity: .4; cursor: default; }
@@ -154,7 +154,7 @@
 .app-main .bg-\[\#18181B\], .app-main .bg-zinc-900, .app-main .bg-\[\#121214\] { background-color: var(--surface); }
 .app-main .text-white { color: var(--text); }.app-main .text-zinc-400, .app-main .text-zinc-500, .app-main .text-zinc-300 { color: var(--muted); }
 .app-main .border-zinc-800, .app-main .border-zinc-700 { border-color: var(--border); }
-@media (min-width: 600px) { .app-root { padding: 16px; }.kalo-shell { max-width: 430px; height: min(900px, calc(100dvh - 32px)); border: 1px solid var(--border); border-radius: 28px; box-shadow: 0 24px 70px #0005; } }
+@media (min-width: 600px) and (hover: hover) and (pointer: fine) { .app-root { padding: 16px; }.kalo-shell { max-width: 430px; height: min(900px, calc(var(--app-height, 100dvh) - 32px)); border: 1px solid var(--border); border-radius: 28px; box-shadow: 0 24px 70px #0005; } }
 @media (max-width: 350px) { .app-scroll { padding-left: 15px; padding-right: 15px; }.calorie-panel { padding: 12px; }.calorie-ring__number strong { font-size: 31px; }.calorie-ring__number > span { font-size: 9px; }.week-strip { gap: 4px; }.meal-row__photo { width: 40px; height: 44px; }.meal-row__open { gap: 7px; }.detail-body { padding: 18px 14px; }.ingredient-row { padding: 10px; }.ingredient-stepper { gap: 4px; } }
 @media (prefers-reduced-motion: reduce) { .opening-splash, .opening-splash__wordmark { animation: none; }.opening-splash__wordmark { background: none !important; color: #ffd12f; }.calorie-ring__arc, .meal-row, .water-gauge__track i, .macro-bars__track i { transition: none; } }
 .recipes-heading { display: flex; justify-content: space-between; align-items: center; margin: 0 0 24px; }
