@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, Check, Loader2, RefreshCw, Upload } from 'lucide-react';
 import type { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
 import { analyzeMealPhoto } from '../services/mealApi';
+import { captureMealPhoto, isNativeApp } from '../services/native';
 
 interface AiMealScannerProps {
   targetMeal: MealType;
@@ -58,7 +59,15 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     reader.onerror = () => setError('Could not read this photo. Please try again.');
     reader.readAsDataURL(file); event.target.value = '';
   };
-  const takePhoto = () => { onNativeCameraPendingChange?.(true); camera.current?.click(); };
+  const takePhoto = async () => {
+    onNativeCameraPendingChange?.(true);
+    if (!isNativeApp()) { camera.current?.click(); return; }
+    try {
+      const image = await captureMealPhoto();
+      if (image) void analyze(image);
+    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not open the camera.'); }
+    finally { onNativeCameraPendingChange?.(false); }
+  };
   const valid = !!name.trim() && fields.every(field => nutrition[field].trim() !== '' && Number.isFinite(Number(nutrition[field])) && Number(nutrition[field]) >= 0);
   const log = () => {
     if (!result || !valid) return;

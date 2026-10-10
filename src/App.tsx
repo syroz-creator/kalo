@@ -13,6 +13,7 @@ import { EditLoggedModal } from './components/EditLoggedModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { ManualMealModal } from './components/ManualMealModal';
 import { OpeningSplash } from './components/OpeningSplash';
+import { captureMealPhoto, isNativeApp, setNativeAppearance } from './services/native';
 import './app.css';
 
 type ActivePage = 'today' | 'progress' | 'recipes' | 'settings';
@@ -72,6 +73,7 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('kalo-theme', theme); localStorage.setItem('kalo-reminders', String(reminders)); } catch { /* Preferences remain usable without storage. */ }
   }, [theme, reminders]);
+  useEffect(() => { void setNativeAppearance(theme).catch(() => {}); }, [theme]);
   useEffect(() => {
     if (!reminders) return;
     const timer = window.setInterval(() => {
@@ -105,10 +107,18 @@ export default function App() {
     reader.onerror = () => { nativeCameraPending.current = false; showToast('Could not read this photo. Please try again.'); };
     reader.readAsDataURL(file); event.target.value = '';
   };
-  const openCamera = () => {
+  const openCamera = async () => {
     const hour = new Date().getHours();
     setTargetMeal(hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 21 ? 'dinner' : 'snacks');
     nativeCameraPending.current = true;
+    if (isNativeApp()) {
+      try {
+        const photo = await captureMealPhoto();
+        if (photo) { setOpening(false); setSnappedInitialImage(photo); setIsAiSnapModalOpen(true); }
+      } catch (error) { showToast(error instanceof Error ? error.message : 'Could not open the camera.'); }
+      finally { nativeCameraPending.current = false; }
+      return;
+    }
     directCameraInputRef.current?.click();
   };
   const logScan = (result: { meal: MealType; dishName: string; totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; portionDescription: string; imageUrl?: string; ingredients?: AnalyzedFoodItem[] }) => {

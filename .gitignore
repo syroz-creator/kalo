@@ -7,3 +7,9 @@ coverage/
 *.log
 .env*
 !.env.example
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/CapApp-SPM/.build/
+ios/App/Pods/
+ios/**/xcuserdata/
+ios/DerivedData/
