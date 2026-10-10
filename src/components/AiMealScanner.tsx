@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertCircle, Camera, Check, Loader2, RefreshCw, Upload } from 'lucide-react';
+import { AlertCircle, Camera, Check, Loader2, RefreshCw, Upload, X } from 'lucide-react';
 import type { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
 import { analyzeMealPhoto } from '../services/mealApi';
 import { captureMealPhoto, isNativeApp } from '../services/native';
@@ -68,6 +68,10 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not open the camera.'); }
     finally { onNativeCameraPendingChange?.(false); }
   };
+  const cancelScan = () => {
+    request.current?.abort();
+    setAnalyzing(false); setError('Scan cancelled.');
+  };
   const valid = !!name.trim() && fields.every(field => nutrition[field].trim() !== '' && Number.isFinite(Number(nutrition[field])) && Number(nutrition[field]) >= 0);
   const log = () => {
     if (!result || !valid) return;
@@ -82,7 +86,7 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     <input ref={camera} type="file" accept="image/*" capture="environment" onChange={readPhoto} aria-label="Retake meal photo" hidden />
     <input ref={library} type="file" accept="image/*" onChange={readPhoto} aria-label="Choose meal photo" hidden />
     {photo && <div className="meal-scan__photo"><img src={photo} alt="Meal preview" />{!analyzing && <button type="button" onClick={takePhoto}><RefreshCw size={15} />Retake</button>}</div>}
-    {analyzing && <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>Scanning your meal...</span></div>}
+    {analyzing && <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>Scanning your meal...</span><button type="button" className="icon-command" aria-label="Cancel scan" title="Cancel scan" onClick={cancelScan}><X size={20} /></button></div>}
     {error && <div className="meal-scan__error" role="alert"><AlertCircle size={20} /><div><strong>Could not analyze photo</strong><p>{error}</p>{photo && <button type="button" onClick={() => void analyze(photo)}>Try again</button>}</div></div>}
     {!photo && <div className="meal-scan__empty"><button type="button" className="primary-command" onClick={takePhoto}><Camera size={19} />Take a photo</button><button type="button" className="text-back" onClick={() => library.current?.click()}><Upload size={18} />Photo library</button></div>}
     {result && <div className="meal-scan__result">

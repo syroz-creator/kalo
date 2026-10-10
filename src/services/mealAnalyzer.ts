@@ -30,23 +30,16 @@ Return only JSON matching the supplied schema.`;
 
 export function createMealAnalyzer(ai: GoogleGenAI, configuredModel?: string) {
   let model = configuredModel?.trim() || 'gemini-3.8-flash';
-  let fallback: Promise<string> | undefined;
-
-  const resolveFallback = async () => {
-    if (!fallback) {
-      fallback = (async () => {
-        const available = new Set<string>();
-        for await (const entry of await ai.models.list({ config: { pageSize: 100 } })) {
-          if (entry.supportedActions?.includes('generateContent') && entry.name) available.add(entry.name.replace(/^models\//, ''));
-        }
-        const selected = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
-          .find(name => name !== model && available.has(name));
-        if (!selected) throw new Error('No compatible meal-scanning model is available for this API key.');
-        return selected;
-      })();
+  const resolveFallback = async (signal?: AbortSignal) => {
+    const available = new Set<string>();
+    for await (const entry of await ai.models.list({ config: { pageSize: 100, abortSignal: signal } })) {
+      signal?.throwIfAborted();
+      if (entry.supportedActions?.includes('generateContent') && entry.name) available.add(entry.name.replace(/^models\//, ''));
     }
-    try { return await fallback; }
-    catch (error) { fallback = undefined; throw error; }
+    const selected = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
+      .find(name => name !== model && available.has(name));
+    if (!selected) throw new Error('No compatible meal-scanning model is available for this API key.');
+    return selected;
   };
 
   return async (image: { mimeType: string; data: string }, userNotes?: string, signal?: AbortSignal) => {
@@ -64,13 +57,16 @@ export function createMealAnalyzer(ai: GoogleGenAI, configuredModel?: string) {
     let response;
     try { response = await generate(model); }
     catch (error) {
+      signal?.throwIfAborted();
       const status = typeof error === 'object' && error !== null && 'status' in error ? error.status : undefined;
       if (status !== 404 || configuredModel?.trim()) throw error;
-      model = await resolveFallback();
+      const fallbackModel = await resolveFallback(signal);
       signal?.throwIfAborted();
+      model = fallbackModel;
       response = await generate(model);
     }
 
+    signal?.throwIfAborted();
     const text = response.text?.trim();
     if (!text) throw new Error('The scan did not return a result. Please try another meal photo.');
     let parsed: unknown;
