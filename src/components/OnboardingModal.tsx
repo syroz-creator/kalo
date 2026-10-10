@@ -1,26 +1,8 @@
-import React, { useState } from 'react';
-import {
-  Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  Zap,
-  Activity,
-  Scale,
-  Flame,
-} from 'lucide-react';
-import {
-  ActivityLevel,
-  BiologicalSex,
-  UnitSystem,
-  UserProfile,
-} from '../types';
-import {
-  calculateEnergyNeeds,
-  cmToFtIn,
-  kgToLbs,
-} from '../utils/calculator';
-import { Logo } from './Logo';
+import React, { useEffect, useRef, useState } from 'react';
+import { Check, ChevronLeft, Dumbbell, Equal, Mars, TrendingDown, Venus } from 'lucide-react';
+import { ActivityLevel, BiologicalSex, UnitSystem, UserProfile, WeightGoal } from '../types';
+import { calculateEnergyNeeds, kgToLbs, lbsToKg } from '../utils/calculator';
+import { NumberPicker } from './NumberPicker';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -28,416 +10,210 @@ interface OnboardingModalProps {
   initialProfile: UserProfile;
 }
 
-export const OnboardingModal: React.FC<OnboardingModalProps> = ({
-  isOpen,
-  onComplete,
-  initialProfile,
-}) => {
-  const [step, setStep] = useState<number>(1);
-  const [sex, setSex] = useState<BiologicalSex>(initialProfile.sex || 'male');
-  const [age, setAge] = useState<number>(initialProfile.age || 24);
-  const [unitSystem, setUnitSystem] = useState<UnitSystem>(initialProfile.unitSystem || 'metric');
-  const [heightCm, setHeightCm] = useState<number>(initialProfile.heightCm || 175);
-  const [weightKg, setWeightKg] = useState<number>(initialProfile.weightKg || 70);
-  const [activityLevel, setActivityLevel] = useState<ActivityLevel>(initialProfile.activityLevel || 'moderate');
+const goals = [
+  { value: 'lose', label: 'Lose weight', description: 'Lose fat while keeping your muscle', Icon: TrendingDown },
+  { value: 'maintain', label: 'Maintain weight', description: 'Stay steady and build better eating habits', Icon: Equal },
+  { value: 'gain', label: 'Build muscle', description: 'Fuel your training and make room to grow', Icon: Dumbbell },
+] as const;
+const activities: { value: ActivityLevel; label: string; description: string }[] = [
+  { value: 'sedentary', label: 'Sedentary', description: 'Desk work and very little movement' },
+  { value: 'light', label: 'Lightly active', description: 'Walking and light everyday movement' },
+  { value: 'moderate', label: 'Active', description: 'Training 3 to 5 days a week' },
+  { value: 'very_active', label: 'Athletic', description: 'Hard training almost every day' },
+];
+const titles = ["What's your goal?", "Let's get to know you", 'Your height and weight', 'How active are you?', 'What pace suits you?', 'Your plan, ready to go'];
+const descriptions = [
+  "We'll use this to set your calories and macros.",
+  'A few details to estimate your daily needs.',
+  'Find your measurements on the ruler.',
+  'Choose what best describes your usual week.',
+  'A steady pace is easier to keep up with.',
+  'A starting point you can adjust as you go.',
+];
+
+function SelectionMark({ selected }: { selected: boolean }) {
+  return <span className={`setup-choice__mark ${selected ? 'is-selected' : ''}`} aria-hidden="true">{selected && <Check size={14} />}</span>;
+}
+
+export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComplete, initialProfile }) => {
+  const [step, setStep] = useState(1);
+  const [goal, setGoal] = useState<WeightGoal>(initialProfile.goal ?? 'maintain');
+  const [sex, setSex] = useState<BiologicalSex>(initialProfile.sex);
+  const [age, setAge] = useState(initialProfile.age);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>(initialProfile.unitSystem);
+  const [heightCm, setHeightCm] = useState(initialProfile.heightCm);
+  const [weightKg, setWeightKg] = useState(initialProfile.weightKg);
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>(initialProfile.activityLevel);
+  const [weeklyWeightChangeKg, setWeeklyWeightChangeKg] = useState(initialProfile.weeklyWeightChangeKg ?? 0.25);
+  const dialogRef = useRef<HTMLFormElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setStep(1);
+    setGoal(initialProfile.goal ?? 'maintain');
+    setSex(initialProfile.sex);
+    setAge(initialProfile.age);
+    setUnitSystem(initialProfile.unitSystem);
+    setHeightCm(initialProfile.heightCm);
+    setWeightKg(initialProfile.weightKg);
+    setActivityLevel(initialProfile.activityLevel);
+    setWeeklyWeightChangeKg(initialProfile.weeklyWeightChangeKg ?? 0.25);
+    const previousFocus = document.activeElement as HTMLElement | null;
+    return () => previousFocus?.focus();
+  }, [isOpen, initialProfile]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    headingRef.current?.focus({ preventScroll: true });
+    contentRef.current?.scrollTo(0, 0);
+  }, [step, isOpen]);
 
   if (!isOpen) return null;
-
-  const currentProfile: UserProfile = {
-    age,
-    sex,
-    heightCm,
-    weightKg,
-    unitSystem,
-    activityLevel,
+  const profile: UserProfile = {
+    ...initialProfile,
+    age, sex, heightCm, weightKg, unitSystem, activityLevel, goal, weeklyWeightChangeKg,
     customTargetCalories: null,
     hasCompletedOnboarding: true,
   };
+  const needs = calculateEnergyNeeds(profile);
+  const valid = age >= 10 && age <= 90 && Number.isInteger(age) && heightCm >= 120 && heightCm <= 220 && weightKg >= 35 && weightKg <= 160;
+  const metric = unitSystem === 'metric';
+  const inches = Math.round(heightCm / 2.54);
+  const weight = metric ? weightKg : kgToLbs(weightKg);
+  const weightUnit = metric ? 'kg' : 'lb';
+  const paceEnabled = goal !== 'maintain' && age >= 18;
+  const pace = paceEnabled ? weeklyWeightChangeKg : 0;
+  const paceDisplay = (metric ? pace : kgToLbs(pace)).toFixed(2);
 
-  const energyNeeds = calculateEnergyNeeds(currentProfile);
-  const { ft, inch } = cmToFtIn(heightCm);
-  const lbs = kgToLbs(weightKg);
-
-  const handleFinish = () => {
-    onComplete(currentProfile);
+  const trapFocus = (event: React.KeyboardEvent) => {
+    if (event.key !== 'Tab') return;
+    const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]');
+    if (!controls?.length) return;
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === headingRef.current)) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); first.focus();
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 text-white">
-      <div className="w-full max-w-[390px] bg-[#0E0E10] rounded-[36px] shadow-2xl border-2 border-yellow-400/40 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
-        {/* Top Header with Glowing Yellow Brand Emblem */}
-        <div className="px-6 pt-5 pb-3 border-b border-zinc-800/80 bg-[#121214]">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Logo size="sm" showSubtitle={false} />
-              <span className="text-[10px] font-black text-yellow-400 tracking-wider uppercase block bg-yellow-400/10 px-2 py-0.5 rounded-md border border-yellow-400/20">
-                Setup
-              </span>
-            </div>
-            <div className="text-xs font-black text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 rounded-full">
-              Step {step} of 4
-            </div>
-          </div>
-
-          {/* Progress bar with electric yellow gradient */}
-          <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-yellow-400 to-amber-300 transition-all duration-300 rounded-full shadow-sm shadow-yellow-400"
-              style={{ width: `${(step / 4) * 100}%` }}
-            />
-          </div>
+    <form ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="setup-title" onKeyDown={trapFocus} className="setup"
+      onSubmit={event => {
+        event.preventDefault();
+        if (!valid) return;
+        if (step < 6) setStep(step + 1);
+        else onComplete(profile);
+      }}>
+      <header className="setup-header">
+        <span className="setup-step" aria-label={`Step ${step} of 6`}>{step} / 6</span>
+        <div className="setup-progress" role="progressbar" aria-label="Setup progress" aria-valuemin={0} aria-valuemax={6} aria-valuenow={step}>
+          <span style={{ width: `${step / 6 * 100}%` }} />
         </div>
+        <button type="button" aria-label="Previous step" title="Back" disabled={step === 1} onClick={() => setStep(step - 1)} className="setup-back"><ChevronLeft size={22} /></button>
+      </header>
 
-        {/* Dynamic Step Content */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-5 no-scrollbar">
-          {/* STEP 1: Sex & Age */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-black text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 rounded-lg mb-2">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Metabolic Baseline
-                </span>
-                <h3 className="text-2xl font-black text-white tracking-tight">
-                  Who is tracking?
-                </h3>
-                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                  Used by clinical equations to determine your resting metabolic coefficient.
-                </p>
-              </div>
+      <div ref={contentRef} className="setup-content">
+        <h2 id="setup-title" ref={headingRef} tabIndex={-1} className="setup-title">{titles[step - 1]}</h2>
+        <p className="setup-description">{descriptions[step - 1]}</p>
 
-              {/* Sex selection */}
-              <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-2">
-                  Biological Sex
+        {step === 1 && (
+          <fieldset className="setup-options">
+            <legend className="sr-only">Your goal</legend>
+            {goals.map(option => (
+              <label key={option.value} className={`setup-choice ${goal === option.value ? 'is-selected' : ''}`}>
+                <input type="radio" name="goal" checked={goal === option.value} onChange={() => setGoal(option.value)} className="sr-only" />
+                <span className="setup-choice__icon"><option.Icon size={23} strokeWidth={1.75} /></span>
+                <span className="setup-choice__copy"><strong>{option.label}</strong><span>{option.description}</span></span>
+                <SelectionMark selected={goal === option.value} />
+              </label>
+            ))}
+          </fieldset>
+        )}
+
+        {step === 2 && (
+          <div className="setup-fields">
+            <fieldset className="setup-sex">
+              <legend className="sr-only">Biological sex</legend>
+              {([{ value: 'female', label: 'Female', Icon: Venus }, { value: 'male', label: 'Male', Icon: Mars }] as const).map(option => (
+                <label key={option.value} className={`setup-sex__option ${sex === option.value ? 'is-selected' : ''}`}>
+                  <input type="radio" name="sex" checked={sex === option.value} onChange={() => setSex(option.value)} className="sr-only" />
+                  <option.Icon size={32} strokeWidth={1.75} aria-hidden="true" />
+                  <span>{option.label}</span>
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setSex('female')}
-                    className={`py-3.5 px-4 rounded-2xl border text-sm font-bold transition-all flex flex-col items-center gap-1 ${
-                      sex === 'female'
-                        ? 'border-yellow-400 bg-yellow-400/15 text-yellow-400 shadow-md shadow-yellow-400/10 ring-2 ring-yellow-400/30'
-                        : 'border-zinc-800 bg-[#18181B] text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <span className="text-base font-black">Female</span>
-                    <span className="text-[11px] text-zinc-500 font-medium">BMR offset -161</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSex('male')}
-                    className={`py-3.5 px-4 rounded-2xl border text-sm font-bold transition-all flex flex-col items-center gap-1 ${
-                      sex === 'male'
-                        ? 'border-yellow-400 bg-yellow-400/15 text-yellow-400 shadow-md shadow-yellow-400/10 ring-2 ring-yellow-400/30'
-                        : 'border-zinc-800 bg-[#18181B] text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <span className="text-base font-black">Male</span>
-                    <span className="text-[11px] text-zinc-500 font-medium">BMR offset +5</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Age selection */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-zinc-300">Age</label>
-                  <span className="text-sm font-black text-yellow-400 bg-zinc-900 px-2.5 py-0.5 rounded-lg border border-zinc-700">
-                    {age} years old
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setAge((prev) => Math.max(10, prev - 1))}
-                    className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black hover:bg-zinc-800 flex items-center justify-center text-lg active:scale-95 transition-all"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="range"
-                    min="10"
-                    max="90"
-                    value={age}
-                    onChange={(e) => setAge(Number(e.target.value))}
-                    className="flex-1 accent-yellow-400 cursor-pointer h-2 bg-zinc-800 rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setAge((prev) => Math.min(90, prev + 1))}
-                    className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black hover:bg-zinc-800 flex items-center justify-center text-lg active:scale-95 transition-all"
-                  >
-                    +
-                  </button>
-                </div>
-
-                <p className="text-[11px] text-zinc-400 mt-2 bg-[#18181B] p-2.5 rounded-xl border border-zinc-800">
-                  {age < 18 ? (
-                    <span className="text-yellow-400 font-bold">
-                      Age &lt; 18: Automatically routed to Schofield Adolescent Standard (FAO/WHO/UNU).
-                    </span>
-                  ) : (
-                    <span>
-                      Age 18+: Uses Mifflin-St Jeor gold standard clinical formula.
-                    </span>
-                  )}
-                </p>
-              </div>
+              ))}
+            </fieldset>
+            <div className="setup-age">
+              <span className="setup-field-label">Your age</span>
+              <div className="setup-age__wheel"><NumberPicker label="Age" min={10} max={90} value={age} onChange={setAge} vertical /></div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* STEP 2: Height & Weight */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-black text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 rounded-lg mb-2">
-                    <Scale className="w-3.5 h-3.5" />
-                    Body Dimensions
-                  </span>
-                  <h3 className="text-2xl font-black text-white tracking-tight">
-                    Height & Weight
-                  </h3>
-                </div>
-
-                <div className="flex bg-zinc-900 p-0.5 rounded-xl text-xs font-bold border border-zinc-800">
-                  <button
-                    type="button"
-                    onClick={() => setUnitSystem('metric')}
-                    className={`px-2.5 py-1 rounded-lg transition-all ${
-                      unitSystem === 'metric' ? 'bg-yellow-400 text-black shadow-xs' : 'text-zinc-400'
-                    }`}
-                  >
-                    Metric
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUnitSystem('imperial')}
-                    className={`px-2.5 py-1 rounded-lg transition-all ${
-                      unitSystem === 'imperial' ? 'bg-yellow-400 text-black shadow-xs' : 'text-zinc-400'
-                    }`}
-                  >
-                    Imperial
-                  </button>
-                </div>
-              </div>
-
-              {/* Height */}
-              <div className="bg-[#18181B] p-3.5 rounded-2xl border border-zinc-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-zinc-300">Height</label>
-                  <span className="text-sm font-black text-yellow-400">
-                    {unitSystem === 'metric' ? `${heightCm} cm` : `${ft} ft ${inch} in`}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="120"
-                  max="220"
-                  value={heightCm}
-                  onChange={(e) => setHeightCm(Number(e.target.value))}
-                  className="w-full accent-yellow-400 cursor-pointer h-2 bg-zinc-800 rounded-lg"
-                />
-              </div>
-
-              {/* Weight */}
-              <div className="bg-[#18181B] p-3.5 rounded-2xl border border-zinc-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-zinc-300">Weight</label>
-                  <span className="text-sm font-black text-yellow-400">
-                    {unitSystem === 'metric' ? `${weightKg} kg` : `${lbs} lbs`}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="35"
-                  max="160"
-                  step="0.5"
-                  value={weightKg}
-                  onChange={(e) => setWeightKg(Number(e.target.value))}
-                  className="w-full accent-yellow-400 cursor-pointer h-2 bg-zinc-800 rounded-lg"
-                />
-              </div>
+        {step === 3 && (
+          <div className="setup-measurements">
+            <fieldset className="setup-units">
+              <legend className="sr-only">Measurement units</legend>
+              {(['metric', 'imperial'] as const).map(value => <label key={value} className={unitSystem === value ? 'is-selected' : ''}>
+                <input type="radio" name="units" checked={unitSystem === value} onChange={() => setUnitSystem(value)} className="sr-only" />
+                {value === 'metric' ? 'kg · cm' : 'lb · ft'}
+              </label>)}
+            </fieldset>
+            <div className="setup-measurement">
+              <span className="setup-field-label">Height</span>
+              <p className="setup-measurement__value">{metric ? Math.round(heightCm) : `${Math.floor(inches / 12)}′ ${inches % 12}″`}<span>{metric ? 'cm' : 'ft / in'}</span></p>
+              <NumberPicker key={`height-${unitSystem}`} label={metric ? 'Height in centimeters' : 'Height in inches'} min={metric ? 120 : 48} max={metric ? 220 : 86} value={metric ? heightCm : inches} onChange={value => setHeightCm(metric ? value : Math.round(value * 2.54))} />
             </div>
-          )}
-
-          {/* STEP 3: Activity Level */}
-          {step === 3 && (
-            <div className="space-y-3">
-              <div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-black text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 rounded-lg mb-2">
-                  <Activity className="w-3.5 h-3.5" />
-                  Lifestyle Activity
-                </span>
-                <h3 className="text-2xl font-black text-white tracking-tight">
-                  How active are you?
-                </h3>
-              </div>
-
-              <div className="space-y-2">
-                {(
-                  [
-                    {
-                      level: 'sedentary',
-                      label: 'Sedentary',
-                      desc: 'Desk job, minimal daily walking',
-                      badge: '1.20x',
-                    },
-                    {
-                      level: 'light',
-                      label: 'Lightly Active',
-                      desc: '1–3 days light exercise or walking',
-                      badge: '1.38x',
-                    },
-                    {
-                      level: 'moderate',
-                      label: 'Moderately Active',
-                      desc: '3–5 days active training or active job',
-                      badge: '1.55x',
-                    },
-                    {
-                      level: 'very_active',
-                      label: 'Very Active',
-                      desc: '6–7 days hard training or manual labor',
-                      badge: '1.73x',
-                    },
-                  ] as const
-                ).map((opt) => (
-                  <button
-                    key={opt.level}
-                    type="button"
-                    onClick={() => setActivityLevel(opt.level)}
-                    className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
-                      activityLevel === opt.level
-                        ? 'border-yellow-400 bg-yellow-400/15 shadow-md ring-2 ring-yellow-400/30'
-                        : 'border-zinc-800 bg-[#18181B] hover:border-zinc-700 text-zinc-300'
-                    }`}
-                  >
-                    <div>
-                      <div className="text-sm font-black text-white flex items-center gap-2">
-                        {opt.label}
-                        <span className="text-[10px] font-bold text-black bg-yellow-400 px-1.5 py-0.2 rounded-md">
-                          {opt.badge}
-                        </span>
-                      </div>
-                      <div className="text-xs text-zinc-400 mt-0.5">{opt.desc}</div>
-                    </div>
-                    {activityLevel === opt.level && (
-                      <div className="w-6 h-6 rounded-full bg-yellow-400 text-black flex items-center justify-center flex-shrink-0">
-                        <Check className="w-4 h-4 stroke-[3]" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
+            <div className="setup-measurement">
+              <span className="setup-field-label">Weight</span>
+              <p className="setup-measurement__value">{Number(weight.toFixed(1))}<span>{weightUnit}</span></p>
+              <NumberPicker key={`weight-${unitSystem}`} label={metric ? 'Weight in kilograms' : 'Weight in pounds'} min={metric ? 35 : 77.5} max={metric ? 160 : 352.5} step={0.5} value={weight} onChange={value => setWeightKg(metric ? value : lbsToKg(value))} />
             </div>
-          )}
+          </div>
+        )}
 
-          {/* STEP 4: Calorie Need Calculation Reveal */}
-          {step === 4 && (
-            <div className="space-y-4 text-center">
-              <div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-black text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2.5 py-1 rounded-lg mb-2">
-                  <Zap className="w-3.5 h-3.5 text-yellow-400" />
-                  Calibration Complete
-                </span>
-                <h3 className="text-2xl font-black text-white tracking-tight">
-                  Your Daily Target
-                </h3>
-              </div>
+        {step === 4 && (
+          <fieldset className="setup-options">
+            <legend className="sr-only">Activity level</legend>
+            {activities.map((option, index) => (
+              <label key={option.value} className={`setup-choice ${activityLevel === option.value ? 'is-selected' : ''}`}>
+                <input type="radio" name="activity" checked={activityLevel === option.value} onChange={() => setActivityLevel(option.value)} className="sr-only" />
+                <span className="setup-choice__icon setup-activity-bars" aria-hidden="true">{[0, 1, 2, 3].map(bar => <i key={bar} style={{ height: 8 + bar * 5, opacity: bar <= index ? 1 : 0.22 }} />)}</span>
+                <span className="setup-choice__copy"><strong>{option.label}</strong><span>{option.description}</span></span>
+                <SelectionMark selected={activityLevel === option.value} />
+              </label>
+            ))}
+          </fieldset>
+        )}
 
-              {/* Glowing Yellow Circular Ring */}
-              <div className="py-2 flex justify-center">
-                <div className="relative w-44 h-44 flex items-center justify-center">
-                  <svg className="w-full h-full -rotate-90">
-                    <circle
-                      cx="88"
-                      cy="88"
-                      r="74"
-                      stroke="#27272A"
-                      strokeWidth="12"
-                      fill="none"
-                    />
-                    <circle
-                      cx="88"
-                      cy="88"
-                      r="74"
-                      stroke="#FACC15"
-                      strokeWidth="12"
-                      fill="none"
-                      strokeDasharray="465"
-                      strokeDashoffset="65"
-                      strokeLinecap="round"
-                      className="shadow-lg shadow-yellow-400/50"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black text-white tracking-tight">
-                      {energyNeeds.tdee}
-                    </span>
-                    <span className="text-xs font-bold text-yellow-400 uppercase tracking-wider">
-                      kcal / day
-                    </span>
-                  </div>
-                </div>
-              </div>
+        {step === 5 && (
+          <div className="setup-pace">
+            <p className="setup-pace__value">{paceEnabled ? `${goal === 'lose' ? '−' : '+'}${paceDisplay}` : '0.00'}<span>{weightUnit} / week</span></p>
+            <input type="range" aria-label="Weekly weight change in kilograms" min={0.1} max={0.75} step={0.05} value={weeklyWeightChangeKg} disabled={!paceEnabled} onChange={event => setWeeklyWeightChangeKg(Number(event.target.value))} className="setup-pace__slider" style={{ '--pace-progress': `${paceEnabled ? (weeklyWeightChangeKg - 0.1) / 0.65 * 100 : 0}%` } as React.CSSProperties} />
+            <div className="setup-pace__ends"><span>Steady</span><span>Faster</span></div>
+            {!paceEnabled && <p className="setup-pace__note">{age < 18 ? 'Your plan supports your daily energy needs while you grow. Weight-change targets are for adults.' : 'Your plan will keep your weight steady. No weekly change needed.'}</p>}
+          </div>
+        )}
 
-              <div className="bg-[#18181B] p-3.5 rounded-2xl border border-zinc-800 text-left space-y-2">
-                <div className="flex items-center justify-between text-xs border-b border-zinc-800 pb-2">
-                  <span className="text-zinc-400">Method</span>
-                  <span className="font-bold text-yellow-400">{energyNeeds.equationName}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs border-b border-zinc-800 pb-2">
-                  <span className="text-zinc-400">Resting BMR</span>
-                  <span className="font-bold text-white">{energyNeeds.bmr} kcal</span>
-                </div>
-                <div className="text-[11px] text-zinc-400 leading-relaxed pt-1">
-                  Balanced target: Protein {energyNeeds.proteinTargetGrams}g · Carbs {energyNeeds.carbsTargetGrams}g · Fat {energyNeeds.fatTargetGrams}g.
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Navigation Buttons */}
-        <div className="p-4 bg-[#121214] border-t border-zinc-800 flex items-center justify-between gap-3">
-          {step > 1 ? (
-            <button
-              type="button"
-              onClick={() => setStep((s) => s - 1)}
-              className="h-12 px-4 rounded-2xl border border-zinc-700 text-zinc-300 hover:bg-zinc-800 font-bold text-xs flex items-center gap-1.5 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-          ) : (
-            <div className="text-[11px] text-zinc-500 font-medium">Quick calibration</div>
-          )}
-
-          {step < 4 ? (
-            <button
-              type="button"
-              onClick={() => setStep((s) => s + 1)}
-              className="h-12 px-6 rounded-2xl bg-yellow-400 hover:bg-yellow-300 active:scale-[0.98] text-black font-black text-xs flex items-center gap-2 transition-all shadow-md shadow-yellow-500/20 ml-auto"
-            >
-              <span>Next Step</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleFinish}
-              className="h-12 px-6 rounded-2xl bg-yellow-400 hover:bg-yellow-300 active:scale-[0.98] text-black font-black text-xs flex items-center gap-2 transition-all shadow-md shadow-yellow-500/30 ml-auto"
-            >
-              <span>Start Tracking Foods</span>
-              <Check className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        {step === 6 && (
+          <div className="setup-plan">
+            <span className="setup-plan__goal">{goals.find(option => option.value === goal)?.label}</span>
+            <p className="setup-plan__calories">{needs.tdee.toLocaleString('en-US')}</p>
+            <p className="setup-plan__unit">calories / day</p>
+            <dl className="setup-plan__macros">
+              {[['Protein', needs.proteinTargetGrams], ['Carbs', needs.carbsTargetGrams], ['Fat', needs.fatTargetGrams]].map(([label, grams]) => <div key={label}><dt>{label}</dt><dd>{grams}<span> g</span></dd></div>)}
+            </dl>
+            <p className="setup-plan__note">{age < 18 ? 'An energy estimate for your growing years, without a weight-change adjustment.' : 'Calorie needs and weekly changes are estimates. Adjust your target in Settings as you learn what works for you.'}</p>
+          </div>
+        )}
       </div>
-    </div>
+
+      <footer className="setup-footer">
+        <button type="submit" disabled={!valid} className="setup-next">{step === 5 ? 'Show my plan' : step === 6 ? 'Start my day' : 'Next'}</button>
+      </footer>
+    </form>
   );
 };

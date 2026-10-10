@@ -71,6 +71,7 @@ export const MyNeedsTab: React.FC<MyNeedsTabProps> = ({ profile, onSaveProfile, 
 
   // Current calculated needs
   const currentProfile: UserProfile = {
+    ...profile,
     age,
     sex,
     heightCm,
@@ -85,6 +86,7 @@ export const MyNeedsTab: React.FC<MyNeedsTabProps> = ({ profile, onSaveProfile, 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     const updated: UserProfile = {
+      ...profile,
       age,
       sex,
       heightCm,

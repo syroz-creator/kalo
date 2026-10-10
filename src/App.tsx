@@ -1,32 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Calendar as CalendarIcon,
-  TrendingUp,
-  Camera,
-  UtensilsCrossed,
-  SlidersHorizontal,
-  Plus,
-} from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Home, TrendingUp, Camera, BookOpen, UserRound, X } from 'lucide-react';
 import { Logo } from './components/Logo';
-import {
-  LoggedItem,
-  MealType,
-  RecipeItem,
-  UserProfile,
-  WorkoutItem,
-} from './types';
-import {
-  loadLoggedItems,
-  loadRecipes,
-  loadUserProfile,
-  loadWaterLogs,
-  loadWorkouts,
-  saveLoggedItems,
-  saveRecipes,
-  saveUserProfile,
-  saveWaterLogs,
-  saveWorkouts,
-} from './services/storage';
+import type { AnalyzedFoodItem, LoggedItem, MealType, RecipeItem, UserProfile, WorkoutItem } from './types';
+import { loadLoggedItems, loadRecipes, loadUserProfile, loadWaterLogs, loadWorkouts, saveLoggedItems, saveRecipes, saveUserProfile, saveWaterLogs, saveWorkouts } from './services/storage';
 import { calculateEnergyNeeds } from './utils/calculator';
 import { getTodayKey } from './utils/date';
 import { TodayTab } from './components/TodayTab';
@@ -36,424 +12,124 @@ import { SettingsTab } from './components/SettingsTab';
 import { AiMealScanner } from './components/AiMealScanner';
 import { EditLoggedModal } from './components/EditLoggedModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { ManualMealModal } from './components/ManualMealModal';
+import { OpeningSplash } from './components/OpeningSplash';
+import './app.css';
 
 type ActivePage = 'today' | 'progress' | 'recipes' | 'settings';
+function preference(key: string) { try { return localStorage.getItem(key); } catch { return null; } }
+const id = () => crypto.randomUUID();
 
 export default function App() {
-  // Navigation
   const [activePage, setActivePage] = useState<ActivePage>('today');
-  const [selectedDate, setSelectedDate] = useState<string>(getTodayKey());
-
-  // Persistent State
+  const [selectedDate, setSelectedDate] = useState(getTodayKey);
   const [userProfile, setUserProfile] = useState<UserProfile>(loadUserProfile);
   const [loggedItems, setLoggedItems] = useState<LoggedItem[]>(loadLoggedItems);
   const [workouts, setWorkouts] = useState<WorkoutItem[]>(loadWorkouts);
-  const [recipes, setRecipes] = useState<RecipeItem[]>(loadRecipes);
+  const [recipes] = useState<RecipeItem[]>(loadRecipes);
   const [waterLogs, setWaterLogs] = useState<Record<string, number>>(loadWaterLogs);
-
-  // Opening Onboarding Modal
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
-    return !userProfile.hasCompletedOnboarding;
-  });
-
-  // Camera Snap AI Modal
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => preference('kalo-theme') === 'light' ? 'light' : 'dark');
+  const [reminders, setReminders] = useState(() => preference('kalo-reminders') === 'true');
+  const [opening, setOpening] = useState(true);
+  const [openingKey, setOpeningKey] = useState(0);
+  const finishOpening = useCallback(() => setOpening(false), []);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => !userProfile.hasCompletedOnboarding);
   const [isAiSnapModalOpen, setIsAiSnapModalOpen] = useState(false);
-  const [targetMeal, setTargetMeal] = useState<MealType>('breakfast');
+  const [manualMeal, setManualMeal] = useState<MealType | null>(null);
+  const [targetMeal, setTargetMeal] = useState<MealType>('lunch');
   const [snappedInitialImage, setSnappedInitialImage] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<LoggedItem | null>(null);
   const directCameraInputRef = useRef<HTMLInputElement>(null);
+  const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const showToast = (message: string, undo?: () => void) => {
+    clearTimeout(toastTimer.current);
+    setToast({ message, undo });
+    toastTimer.current = setTimeout(() => setToast(null), undo ? 6000 : 3000);
+  };
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
+  useEffect(() => {
+    const reopen = () => { setOpeningKey(key => key + 1); setOpening(true); };
+    const visibility = () => { if (document.visibilityState === 'visible') reopen(); };
+    const pageshow = (event: PageTransitionEvent) => { if (event.persisted) reopen(); };
+    document.addEventListener('visibilitychange', visibility);
+    window.addEventListener('pageshow', pageshow);
+    return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pageshow', pageshow); };
+  }, []);
+  useEffect(() => { saveUserProfile(userProfile); }, [userProfile]);
+  useEffect(() => { saveLoggedItems(loggedItems); }, [loggedItems]);
+  useEffect(() => { saveWorkouts(workouts); }, [workouts]);
+  useEffect(() => { saveRecipes(recipes); }, [recipes]);
+  useEffect(() => { saveWaterLogs(waterLogs); }, [waterLogs]);
+  useEffect(() => {
+    try { localStorage.setItem('kalo-theme', theme); localStorage.setItem('kalo-reminders', String(reminders)); } catch { /* Preferences remain usable without storage. */ }
+  }, [theme, reminders]);
+  useEffect(() => {
+    if (!reminders) return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible' && 'Notification' in window && Notification.permission === 'granted') new Notification('Time for a water break', { body: 'A little refill for your day.', icon: '/icons/icon-192.png' });
+    }, 60 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [reminders]);
 
-  const handleDirectPhotoCaptured = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const energyNeeds = calculateEnergyNeeds(userProfile);
+  const addMeal = (item: Omit<LoggedItem, 'id' | 'createdAt'>) => {
+    setLoggedItems(items => [{ ...item, id: id(), createdAt: Date.now() }, ...items]);
+    showToast('Meal logged'); setActivePage('today');
+  };
+  const deleteMeal = (itemId: string) => {
+    const removed = loggedItems.find(item => item.id === itemId);
+    setLoggedItems(items => items.filter(item => item.id !== itemId));
+    showToast('Meal removed', removed ? () => setLoggedItems(items => items.some(item => item.id === removed.id) ? items : [...items, removed]) : undefined);
+  };
+  const repeatMeal = (item: LoggedItem) => {
+    const repeated = { ...item, id: id(), date: selectedDate, createdAt: Date.now() };
+    setLoggedItems(items => [repeated, ...items]);
+    showToast('Meal logged again', () => setLoggedItems(items => items.filter(entry => entry.id !== repeated.id)));
+  };
+  const handlePhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      setSnappedInitialImage(dataUrl);
-      setIsAiSnapModalOpen(true);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+    reader.onload = () => { setSnappedInitialImage(reader.result as string); setIsAiSnapModalOpen(true); };
+    reader.readAsDataURL(file); event.target.value = '';
   };
-
-  // Edit Logged Item Modal
-  const [editingItem, setEditingItem] = useState<LoggedItem | null>(null);
-
-  // Toast feedback
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 2500);
-  };
-
-  // Sync to Storage
-  useEffect(() => {
-    saveUserProfile(userProfile);
-  }, [userProfile]);
-
-  useEffect(() => {
-    saveLoggedItems(loggedItems);
-  }, [loggedItems]);
-
-  useEffect(() => {
-    saveWorkouts(workouts);
-  }, [workouts]);
-
-  useEffect(() => {
-    saveRecipes(recipes);
-  }, [recipes]);
-
-  useEffect(() => {
-    saveWaterLogs(waterLogs);
-  }, [waterLogs]);
-
-  const handleUpdateWaterCups = (cups: number) => {
-    setWaterLogs((prev) => ({
-      ...prev,
-      [selectedDate]: Math.max(0, Math.min(8, cups)),
-    }));
-  };
-
-  // Derived Energy Needs
-  const energyNeeds = calculateEnergyNeeds(userProfile);
-
-  // Handlers for Logging Meals
-  const handleOpenSnapForMeal = (meal: MealType) => {
-    setTargetMeal(meal);
-    setSnappedInitialImage(null);
-    if (directCameraInputRef.current) {
-      directCameraInputRef.current.click();
-    } else {
-      setIsAiSnapModalOpen(true);
-    }
-  };
-
-  const handleOpenGlobalCamera = () => {
-    // Guess default meal based on current hour
+  const openCamera = () => {
     const hour = new Date().getHours();
-    let guessedMeal: MealType = 'lunch';
-    if (hour < 11) guessedMeal = 'breakfast';
-    else if (hour < 16) guessedMeal = 'lunch';
-    else if (hour < 21) guessedMeal = 'dinner';
-    else guessedMeal = 'snacks';
-
-    setTargetMeal(guessedMeal);
-    setSnappedInitialImage(null);
-    if (directCameraInputRef.current) {
-      directCameraInputRef.current.click();
-    } else {
-      setIsAiSnapModalOpen(true);
-    }
+    setTargetMeal(hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 21 ? 'dinner' : 'snacks');
+    setSnappedInitialImage(null); setIsAiSnapModalOpen(true);
   };
-
-  const handleLogAiMeal = (result: {
-    meal: MealType;
-    dishName: string;
-    totalCalories: number;
-    totalProtein: number;
-    totalCarbs: number;
-    totalFat: number;
-    portionDescription: string;
-    imageUrl?: string;
-  }) => {
-    const newItem: LoggedItem = {
-      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      foodId: `ai-${Date.now()}`,
-      date: selectedDate,
-      meal: result.meal,
-      name: result.dishName,
-      quantity: 1,
-      unit: result.portionDescription || 'portion',
-      calories: result.totalCalories,
-      protein: result.totalProtein,
-      carbs: result.totalCarbs,
-      fat: result.totalFat,
-      source: 'ai_camera',
-      imageUrl: result.imageUrl,
-      createdAt: Date.now(),
-    };
-
-    setLoggedItems((prev) => [newItem, ...prev]);
-    showToast(`Logged ${result.totalCalories} kcal to ${result.meal}!`);
+  const logScan = (result: { meal: MealType; dishName: string; totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; portionDescription: string; imageUrl?: string; ingredients?: AnalyzedFoodItem[] }) => {
+    addMeal({ foodId: `ai-${id()}`, date: selectedDate, meal: result.meal, name: result.dishName, quantity: 1, unit: result.portionDescription || 'portion', calories: result.totalCalories, protein: result.totalProtein, carbs: result.totalCarbs, fat: result.totalFat, source: 'ai_camera', imageUrl: result.imageUrl, ingredients: result.ingredients });
     setIsAiSnapModalOpen(false);
-    setActivePage('today');
   };
-
-  const handleLogRecipe = (recipe: RecipeItem, meal: MealType) => {
-    const newItem: LoggedItem = {
-      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      foodId: recipe.id,
-      date: selectedDate,
-      meal,
-      name: recipe.title,
-      quantity: 1,
-      unit: 'serving',
-      calories: recipe.calories,
-      protein: recipe.protein,
-      carbs: recipe.carbs,
-      fat: recipe.fat,
-      source: 'custom',
-      createdAt: Date.now(),
-    };
-
-    setLoggedItems((prev) => [newItem, ...prev]);
-    showToast(`Logged ${recipe.title} to ${meal}!`);
-    setActivePage('today');
+  const logRecipe = (recipe: RecipeItem, meal: MealType) => addMeal({ foodId: recipe.id, date: selectedDate, meal, name: recipe.title, quantity: 1, unit: 'serving', calories: recipe.calories, protein: recipe.protein, carbs: recipe.carbs, fat: recipe.fat, source: 'custom' });
+  const exportData = () => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: userProfile, meals: loggedItems, workouts, recipes, water: waterLogs }, null, 2)], { type: 'application/json' }));
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = `kalo-${getTodayKey()}.json`; anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-
-  const handleUpdateLoggedItem = (id: string, updates: Partial<LoggedItem>) => {
-    setLoggedItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
-    showToast('Updated meal item');
-  };
-
-  const handleDeleteLoggedItem = (id: string) => {
-    setLoggedItems((prev) => prev.filter((item) => item.id !== id));
-    showToast('Removed item');
-  };
-
-  // Workout Handlers
-  const handleAddWorkout = (workout: Omit<WorkoutItem, 'id' | 'createdAt'>) => {
-    const newWorkout: WorkoutItem = {
-      ...workout,
-      id: `w-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      createdAt: Date.now(),
-    };
-    setWorkouts((prev) => [newWorkout, ...prev]);
-    showToast(`Workout logged (-${workout.caloriesBurned} kcal)`);
-  };
-
-  const handleDeleteWorkout = (id: string) => {
-    setWorkouts((prev) => prev.filter((w) => w.id !== id));
-    showToast('Removed workout');
-  };
-
-  // Clear data
-  const handleClearAllData = () => {
-    setLoggedItems([]);
-    setWorkouts([]);
-    showToast('All log data cleared');
-  };
-
-  return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-0 sm:p-4 text-white antialiased selection:bg-yellow-400 selection:text-black">
-      {/* Mobile Shell Container (Fixed 390px iPhone baseline on desktop, 100% on mobile) */}
-      <div className="w-full sm:max-w-[400px] h-[100dvh] sm:h-[844px] bg-[#0E0E10] sm:rounded-[44px] sm:shadow-2xl sm:shadow-yellow-400/5 sm:border-2 sm:border-[#27272A] flex flex-col overflow-hidden relative">
-        {/* App Top Bar */}
-        <header className="px-5 pt-3.5 pb-3 flex items-center justify-between border-b border-zinc-800/80 bg-[#121214]/90 backdrop-blur-md sticky top-0 z-20">
-          <Logo size="md" showSubtitle={true} />
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleOpenGlobalCamera}
-              className="h-8 px-3 rounded-xl bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-yellow-400/20"
-              aria-label="Snap meal photo"
-            >
-              <Camera className="w-3.5 h-3.5 text-black" />
-              <span>Snap</span>
-            </button>
-          </div>
-        </header>
-
-        {/* Hidden Global Native Camera Input */}
-        <input
-          ref={directCameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleDirectPhotoCaptured}
-          className="hidden"
-        />
-
-        {/* Main Content Area */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-[#0E0E10]">
-          {activePage === 'today' && (
-            <TodayTab
-              selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
-              loggedItems={loggedItems}
-              energyNeeds={energyNeeds}
-              cupsDrank={waterLogs[selectedDate] ?? 0}
-              onUpdateWaterCups={handleUpdateWaterCups}
-              onOpenLogModal={handleOpenSnapForMeal}
-              onEditItem={(item) => setEditingItem(item)}
-              onQuickSnap={handleOpenGlobalCamera}
-            />
-          )}
-
-          {activePage === 'progress' && (
-            <ProgressTab
-              selectedDate={selectedDate}
-              loggedItems={loggedItems}
-              workouts={workouts}
-              targetCalories={energyNeeds.tdee}
-              onAddWorkout={handleAddWorkout}
-              onDeleteWorkout={handleDeleteWorkout}
-            />
-          )}
-
-          {activePage === 'recipes' && (
-            <RecipesTab
-              recipes={recipes}
-              onLogRecipeAsMeal={handleLogRecipe}
-            />
-          )}
-
-          {activePage === 'settings' && (
-            <SettingsTab
-              profile={userProfile}
-              onSaveProfile={setUserProfile}
-              onOpenOnboarding={() => setIsOnboardingOpen(true)}
-              onClearAllData={handleClearAllData}
-            />
-          )}
-        </main>
-
-        {/* Bottom Tab Bar with Center Camera Snap Button */}
-        <nav className="h-18 border-t border-zinc-800 bg-[#121214]/95 backdrop-blur-md px-3 grid grid-cols-5 items-center z-20">
-          {/* 1. Today */}
-          <button
-            type="button"
-            onClick={() => setActivePage('today')}
-            className={`flex flex-col items-center justify-center py-1 transition-all ${
-              activePage === 'today'
-                ? 'text-yellow-400 font-black'
-                : 'text-zinc-500 hover:text-zinc-300 font-semibold'
-            }`}
-          >
-            <CalendarIcon className="w-5 h-5" />
-            <span className="text-[10px] mt-1">Today</span>
-          </button>
-
-          {/* 2. Progress */}
-          <button
-            type="button"
-            onClick={() => setActivePage('progress')}
-            className={`flex flex-col items-center justify-center py-1 transition-all ${
-              activePage === 'progress'
-                ? 'text-yellow-400 font-black'
-                : 'text-zinc-500 hover:text-zinc-300 font-semibold'
-            }`}
-          >
-            <TrendingUp className="w-5 h-5" />
-            <span className="text-[10px] mt-1">Progress</span>
-          </button>
-
-          {/* 3. Center Camera Action Shutter Button */}
-          <div className="flex items-center justify-center -mt-6 relative">
-            {/* Glowing yellow ambient pulse */}
-            <div className="absolute inset-0 rounded-full bg-yellow-400/25 blur-lg animate-pulse-glow pointer-events-none scale-125" />
-            <button
-              type="button"
-              onClick={handleOpenGlobalCamera}
-              className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-yellow-300 hover:brightness-110 active:scale-95 text-black flex items-center justify-center shadow-2xl shadow-yellow-400/50 border-4 border-[#0E0E10] transition-all relative z-10 animate-float-bob"
-              aria-label="Take picture of meal"
-              title="Snap & analyze meal"
-            >
-              <Camera className="w-6 h-6 stroke-[2.5]" />
-            </button>
-          </div>
-
-          {/* 4. Recipes */}
-          <button
-            type="button"
-            onClick={() => setActivePage('recipes')}
-            className={`flex flex-col items-center justify-center py-1 transition-all ${
-              activePage === 'recipes'
-                ? 'text-yellow-400 font-black'
-                : 'text-zinc-500 hover:text-zinc-300 font-semibold'
-            }`}
-          >
-            <UtensilsCrossed className="w-5 h-5" />
-            <span className="text-[10px] mt-1">Recipes</span>
-          </button>
-
-          {/* 5. Settings */}
-          <button
-            type="button"
-            onClick={() => setActivePage('settings')}
-            className={`flex flex-col items-center justify-center py-1 transition-all ${
-              activePage === 'settings'
-                ? 'text-yellow-400 font-black'
-                : 'text-zinc-500 hover:text-zinc-300 font-semibold'
-            }`}
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-            <span className="text-[10px] mt-1">Settings</span>
-          </button>
-        </nav>
-
-        {/* Toast Notification */}
-        {toastMessage && (
-          <div className="absolute bottom-22 left-1/2 -translate-x-1/2 bg-yellow-400 text-black text-xs font-black px-4 py-2.5 rounded-full shadow-2xl z-50 border-2 border-black/40 animate-pop-bounce flex items-center gap-1.5 shadow-yellow-400/30">
-            <span className="w-2 h-2 rounded-full bg-black animate-ping" />
-            <span>{toastMessage}</span>
-          </div>
-        )}
-
-        {/* Onboarding Opening Modal */}
-        <OnboardingModal
-          isOpen={isOnboardingOpen}
-          initialProfile={userProfile}
-          onComplete={(newProfile) => {
-            setUserProfile(newProfile);
-            setIsOnboardingOpen(false);
-            showToast('Calorie baseline calibrated!');
-          }}
-        />
-
-        {/* Edit Logged Item Modal */}
-        <EditLoggedModal
-          isOpen={!!editingItem}
-          item={editingItem}
-          onClose={() => setEditingItem(null)}
-          onUpdate={handleUpdateLoggedItem}
-          onDelete={handleDeleteLoggedItem}
-        />
-
-        {/* AI Meal Snap Modal */}
-        {isAiSnapModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-2">
-            <div
-              className="w-full max-w-[420px] max-h-[92vh] bg-[#141416] rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl border-2 border-yellow-400/60 overflow-hidden animate-pop-bounce"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-5 pt-3.5 pb-3 border-b border-zinc-800 flex items-center justify-between bg-[#18181B]">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-yellow-400 text-black flex items-center justify-center">
-                    <Camera className="w-4 h-4" />
-                  </div>
-                  <h2 className="text-sm font-black text-white">
-                    Snap & Count {targetMeal.toUpperCase()}
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAiSnapModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 text-white flex items-center justify-center font-bold"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto no-scrollbar">
-                <AiMealScanner
-                  targetMeal={targetMeal}
-                  initialImage={snappedInitialImage}
-                  onChangeTargetMeal={setTargetMeal}
-                  onLogMealResult={handleLogAiMeal}
-                  onClose={() => setIsAiSnapModalOpen(false)}
-                  isModal
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+  const tabs = [{ key: 'today', label: 'Today', icon: Home }, { key: 'progress', label: 'Progress', icon: TrendingUp }, { key: 'recipes', label: 'Recipes', icon: BookOpen }, { key: 'settings', label: 'Settings', icon: UserRound }] as const;
+  const dialogOpen = !!manualMeal || !!editingItem || isAiSnapModalOpen || isOnboardingOpen;
+  return <div className="app-root"><div className="kalo-shell" data-theme={theme}>
+    <div className="app-surface" inert={opening || dialogOpen}>
+      <header className="app-brandbar"><button type="button" aria-label="Kalo home" title="Home" onClick={() => { setActivePage('today'); setSelectedDate(getTodayKey()); }}><Logo size="sm" /></button><button type="button" className="icon-command" aria-label="Snap meal photo" title="Snap meal photo" onClick={openCamera}><Camera size={20} /></button></header>
+      <main className="app-main">
+        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} cupsDrank={waterLogs[selectedDate] ?? 0} onUpdateWaterCups={cups => setWaterLogs(logs => ({ ...logs, [selectedDate]: Math.max(0, Math.min(10, cups)) }))} onOpenLogModal={setManualMeal} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
+        {activePage === 'progress' && <ProgressTab selectedDate={selectedDate} loggedItems={loggedItems} workouts={workouts} targetCalories={energyNeeds.tdee} onAddWorkout={workout => { setWorkouts(items => [{ ...workout, id: id(), createdAt: Date.now() }, ...items]); showToast('Workout logged'); }} onDeleteWorkout={itemId => setWorkouts(items => items.filter(item => item.id !== itemId))} />}
+        {activePage === 'recipes' && <RecipesTab recipes={recipes} onLogRecipeAsMeal={logRecipe} />}
+        {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { setLoggedItems([]); setWorkouts([]); showToast('History cleared'); }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} onExport={exportData} />}
+      </main>
+      <nav className="app-nav" aria-label="Main navigation">{tabs.map((tab, index) => <React.Fragment key={tab.key}>{index === 2 && <button type="button" className="center-camera" title="Photograph a meal" aria-label="Take picture of meal" onClick={openCamera}><Camera size={28} /></button>}<button type="button" aria-current={activePage === tab.key ? 'page' : undefined} onClick={() => setActivePage(tab.key)}><tab.icon size={24} strokeWidth={1.6} /><span>{tab.label}</span></button></React.Fragment>)}</nav>
     </div>
-  );
+    {toast && <div className="app-toast" role="status"><span>{toast.message}</span>{toast.undo && <button type="button" onClick={() => { toast.undo?.(); setToast(null); }}>Undo</button>}</div>}
+    <div inert={opening} className="app-dialog-layer">
+      <OnboardingModal isOpen={isOnboardingOpen} initialProfile={userProfile} onComplete={profile => { setUserProfile(profile); setIsOnboardingOpen(false); showToast('Your daily target is set.'); }} />
+      {manualMeal && <ManualMealModal meal={manualMeal} date={selectedDate} onClose={() => setManualMeal(null)} onLog={addMeal} />}
+      <EditLoggedModal isOpen={!!editingItem} item={editingItem} onClose={() => setEditingItem(null)} onUpdate={(itemId, updates) => { setLoggedItems(items => items.map(item => item.id === itemId ? { ...item, ...updates } : item)); showToast('Meal updated'); }} onDelete={deleteMeal} />
+      {isAiSnapModalOpen && <section className="scanner-dialog" role="dialog" aria-modal="true" aria-label="Meal photo"><header><h2>Meal photo</h2><button type="button" className="icon-command" aria-label="Close meal photo" onClick={() => setIsAiSnapModalOpen(false)}><X size={22} /></button></header><div className="scanner-scroll"><AiMealScanner targetMeal={targetMeal} initialImage={snappedInitialImage} onChangeTargetMeal={setTargetMeal} onLogMealResult={logScan} onClose={() => setIsAiSnapModalOpen(false)} isModal /></div></section>}
+    </div>
+    <input ref={directCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} hidden />
+    {opening && <OpeningSplash key={openingKey} onComplete={finishOpening} />}
+  </div></div>;
 }

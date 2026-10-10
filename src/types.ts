@@ -55,6 +55,7 @@ export interface LoggedItem {
   source: FoodSource | 'ai_camera';
   imageUrl?: string;
   createdAt: number;
+  ingredients?: AnalyzedFoodItem[];
 }
 
 export type WorkoutType = 'strength' | 'cardio' | 'walk' | 'hiit' | 'sport';
@@ -89,6 +90,7 @@ export interface RecipeItem {
 export type BiologicalSex = 'female' | 'male';
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very_active';
 export type UnitSystem = 'metric' | 'imperial';
+export type WeightGoal = 'lose' | 'maintain' | 'gain';
 
 export interface UserProfile {
   age: number;
@@ -97,6 +99,8 @@ export interface UserProfile {
   weightKg: number;
   unitSystem: UnitSystem;
   activityLevel: ActivityLevel;
+  goal?: WeightGoal;
+  weeklyWeightChangeKg?: number;
   customTargetCalories?: number | null;
   hasCompletedOnboarding?: boolean;
 }

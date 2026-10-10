@@ -10,7 +10,8 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import { MealAnalysisResult, MealType } from '../types';
+import { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
+import { getMealImage, normalizeMealAnalysis } from '../utils/mealAnalysis';
 
 interface AiMealScannerProps {
   targetMeal: MealType;
@@ -25,6 +26,7 @@ interface AiMealScannerProps {
     totalFat: number;
     portionDescription: string;
     imageUrl?: string;
+    ingredients?: AnalyzedFoodItem[];
   }) => void;
   onClose?: () => void;
   isModal?: boolean;
@@ -78,7 +80,9 @@ export const AiMealScanner: React.FC<AiMealScannerProps> = ({
   useEffect(() => {
     if (initialImage) {
       setImagePreview(initialImage);
-      runAiAnalysis(initialImage, 'image/jpeg');
+      const mime = initialImage.match(/^data:([^;,]+);base64,/)?.[1] || 'image/jpeg';
+      setImageMime(mime);
+      runAiAnalysis(initialImage, mime);
     } else {
       // Straight to camera!
       startCameraStream();
@@ -159,6 +163,7 @@ export const AiMealScanner: React.FC<AiMealScannerProps> = ({
   const runAiAnalysis = async (imgData: string, mime: string) => {
     setIsAnalyzing(true);
     setErrorMessage(null);
+    setAnalysisResult(null);
     setAnalysisStep('Scanning plate & detecting scale...');
 
     const stepTimer1 = setTimeout(() => {
@@ -170,24 +175,30 @@ export const AiMealScanner: React.FC<AiMealScannerProps> = ({
     }, 2400);
 
     try {
+      const image = getMealImage(imgData, mime);
       const response = await fetch('/api/analyze-meal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageBase64: imgData,
-          mimeType: mime,
+          imageBase64: image.data,
+          mimeType: image.mimeType,
         }),
       });
 
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
 
+      if (!response.headers.get('content-type')?.includes('application/json')) {
+        throw new Error(response.status === 413
+          ? 'This photo is too large. Choose a smaller photo and try again.'
+          : 'The meal-scanning server could not be reached. Please try again shortly.');
+      }
       const data = await response.json();
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Failed to analyze meal image');
       }
 
-      const res: MealAnalysisResult = data.data;
+      const res = normalizeMealAnalysis(data.data);
       setAnalysisResult(res);
       setEditDishName(res.dishName || 'Scanned Meal');
       setEditCalories(String(res.totalCalories || 0));
@@ -208,10 +219,14 @@ export const AiMealScanner: React.FC<AiMealScannerProps> = ({
   const handleConfirmLog = () => {
     if (!analysisResult) return;
 
-    const cal = Number(editCalories) || analysisResult.totalCalories;
-    const prot = Number(editProtein) || analysisResult.totalProtein;
-    const carb = Number(editCarbs) || analysisResult.totalCarbs;
-    const fatVal = Number(editFat) || analysisResult.totalFat;
+    const cal = Number(editCalories);
+    const prot = Number(editProtein);
+    const carb = Number(editCarbs);
+    const fatVal = Number(editFat);
+    if ([editCalories, editProtein, editCarbs, editFat].some(value => !value.trim()) || ![cal, prot, carb, fatVal].every(value => Number.isFinite(value) && value >= 0)) {
+      setErrorMessage('Enter a valid, nonnegative value for calories and each macro.');
+      return;
+    }
     const name = editDishName.trim() || analysisResult.dishName || 'AI Scanned Meal';
 
     const portionsList = analysisResult.items?.map((i) => `${i.name} (${i.portion})`).join(', ');
@@ -225,6 +240,13 @@ export const AiMealScanner: React.FC<AiMealScannerProps> = ({
       totalFat: Math.round(fatVal * 10) / 10,
       portionDescription: portionsList || '1 plate',
       imageUrl: imagePreview || undefined,
+      ingredients: analysisResult.items?.map(item => ({
+        ...item,
+        calories: analysisResult.totalCalories > 0 ? item.calories * cal / analysisResult.totalCalories : 0,
+        protein: analysisResult.totalProtein > 0 ? item.protein * prot / analysisResult.totalProtein : 0,
+        carbs: analysisResult.totalCarbs > 0 ? item.carbs * carb / analysisResult.totalCarbs : 0,
+        fat: analysisResult.totalFat > 0 ? item.fat * fatVal / analysisResult.totalFat : 0,
+      })),
     });
 
     if (onClose) {
@@ -418,10 +440,10 @@ export const AiMealScanner: React.FC<AiMealScannerProps> = ({
             <span className="text-red-300 block leading-relaxed">{errorMessage}</span>
             <button
               type="button"
-              onClick={handleRetake}
+              onClick={() => imagePreview && runAiAnalysis(imagePreview, imageMime)}
               className="mt-2 text-xs font-bold text-yellow-400 underline underline-offset-2"
             >
-              Try another photo
+              Try again
             </button>
           </div>
         </div>
@@ -433,7 +455,7 @@ export const AiMealScanner: React.FC<AiMealScannerProps> = ({
           <div className="flex items-center justify-between border-b border-zinc-800/80 pb-3">
             <div>
               <span className="text-[10px] font-black text-yellow-400 uppercase tracking-wider bg-yellow-400/10 px-2 py-0.5 rounded-md border border-yellow-400/20">
-                Verified with Vision AI
+                Estimated nutrition
               </span>
               <h3 className="text-lg font-black text-white mt-1 leading-tight">
                 {analysisResult.dishName}

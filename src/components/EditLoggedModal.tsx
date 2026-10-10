@@ -1,183 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { X, Trash2, Check } from 'lucide-react';
-import { LoggedItem, MealType } from '../types';
+import { useEffect, useState } from 'react';
+import { ChevronLeft, Trash2, Check, Minus, Plus } from 'lucide-react';
+import type { LoggedItem, MealType, AnalyzedFoodItem } from '../types';
+import { useDialogFocus } from '../utils/useDialogFocus';
 
-interface EditLoggedModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  item: LoggedItem | null;
-  onUpdate: (id: string, updates: Partial<LoggedItem>) => void;
-  onDelete: (id: string) => void;
+interface Props { isOpen: boolean; onClose: () => void; item: LoggedItem | null; onUpdate: (id: string, updates: Partial<LoggedItem>) => void; onDelete: (id: string) => void }
+const keys = ['calories', 'protein', 'carbs', 'fat'] as const;
+function portion(food: AnalyzedFoodItem) {
+  const match = food.portion.match(/^(\d+(?:\.\d+)?)\s*(?:g|grams?)$/i);
+  return match && Number(match[1]) > 0 ? { amount: Number(match[1]), unit: 'g', step: 10 } : { amount: 1, unit: 'portion', step: 0.25 };
 }
 
-const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snacks: 'Snacks',
-};
-
-export const EditLoggedModal: React.FC<EditLoggedModalProps> = ({
-  isOpen,
-  onClose,
-  item,
-  onUpdate,
-  onDelete,
-}) => {
-  const [meal, setMeal] = useState<MealType>('breakfast');
-  const [calories, setCalories] = useState<string>('0');
-  const [protein, setProtein] = useState<string>('0');
-  const [carbs, setCarbs] = useState<string>('0');
-  const [fat, setFat] = useState<string>('0');
-  const [name, setName] = useState<string>('');
-
+export function EditLoggedModal({ isOpen, item, onClose, onUpdate, onDelete }: Props) {
+  const [meal, setMeal] = useState<MealType>('lunch');
+  const [name, setName] = useState('');
+  const [nutrition, setNutrition] = useState({ calories: '0', protein: '0', carbs: '0', fat: '0' });
+  const [amounts, setAmounts] = useState<number[]>([]);
+  const dialogRef = useDialogFocus(isOpen, onClose);
   useEffect(() => {
-    if (item) {
-      setMeal(item.meal);
-      setCalories(String(item.calories));
-      setProtein(String(item.protein));
-      setCarbs(String(item.carbs));
-      setFat(String(item.fat));
-      setName(item.name);
-    }
+    if (!item) return;
+    setMeal(item.meal); setName(item.name);
+    setNutrition({ calories: String(item.calories), protein: String(item.protein), carbs: String(item.carbs), fat: String(item.fat) });
+    setAmounts(item.ingredients?.map(food => portion(food).amount) ?? []);
   }, [item]);
-
   if (!isOpen || !item) return null;
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    onUpdate(item.id, {
-      meal,
-      name: name.trim() || item.name,
-      calories: Math.round(Number(calories) || 0),
-      protein: Math.round((Number(protein) || 0) * 10) / 10,
-      carbs: Math.round((Number(carbs) || 0) * 10) / 10,
-      fat: Math.round((Number(fat) || 0) * 10) / 10,
-    });
-    onClose();
-  };
-
-  const handleDelete = () => {
-    onDelete(item.id);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-xs p-2 text-white">
-      <div
-        className="w-full max-w-[390px] bg-[#18181B] rounded-3xl border-2 border-yellow-400 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-          <h3 className="text-base font-black text-white">Edit Logged Meal</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {item.imageUrl && (
-          <div className="w-full h-32 rounded-2xl overflow-hidden border border-zinc-700">
-            <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        <form onSubmit={handleSave} className="space-y-3">
-          <div>
-            <label className="block text-xs font-bold text-zinc-300 mb-1">Meal Title</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 text-sm font-bold bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-yellow-400"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-zinc-300 mb-1">Meal Type</label>
-            <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-900 rounded-xl border border-zinc-800">
-              {(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMeal(m)}
-                  className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-                    meal === m ? 'bg-yellow-400 text-black shadow-xs font-black' : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  {MEAL_LABELS[m]}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-300 mb-0.5">Calories (kcal)</label>
-              <input
-                type="number"
-                value={calories}
-                onChange={(e) => setCalories(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-black bg-zinc-900 border border-zinc-700 rounded-xl text-yellow-400 focus:outline-none focus:border-yellow-400"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-300 mb-0.5">Protein (g)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={protein}
-                onChange={(e) => setProtein(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-bold bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-yellow-400"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-300 mb-0.5">Carbs (g)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={carbs}
-                onChange={(e) => setCarbs(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-bold bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-yellow-400"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-zinc-300 mb-0.5">Fat (g)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={fat}
-                onChange={(e) => setFat(e.target.value)}
-                className="w-full px-3 py-2 text-sm font-bold bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-yellow-400"
-              />
-            </div>
-          </div>
-
-          <div className="pt-2 space-y-2">
-            <button
-              type="submit"
-              className="w-full h-11 bg-yellow-400 hover:bg-yellow-300 active:scale-98 text-black font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-yellow-500/10"
-            >
-              <Check className="w-4 h-4 text-black stroke-[3]" />
-              Save Changes
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="w-full h-10 text-red-400 hover:bg-red-950/40 active:scale-98 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete Food
-            </button>
-          </div>
-        </form>
+  const ingredients = item.ingredients?.map((food, index) => {
+    const base = portion(food);
+    const amount = amounts[index] ?? base.amount;
+    const ratio = amount / base.amount;
+    return { ...food, portion: `${amount} ${base.unit}`, calories: Math.round(food.calories * ratio), protein: Math.round(food.protein * ratio * 10) / 10, carbs: Math.round(food.carbs * ratio * 10) / 10, fat: Math.round(food.fat * ratio * 10) / 10 };
+  });
+  const hasIngredients = !!ingredients?.length;
+  const totals = Object.fromEntries(keys.map(key => [key, hasIngredients ? ingredients!.reduce((sum, food) => sum + food[key], 0) : Number(nutrition[key])])) as Record<typeof keys[number], number>;
+  const valid = !!name.trim() && keys.every(key => Number.isFinite(totals[key]) && totals[key] >= 0 && (hasIngredients || nutrition[key] !== ''));
+  return <form ref={dialogRef} className="detail-page" role="dialog" aria-modal="true" aria-labelledby="meal-title" onSubmit={event => {
+    event.preventDefault(); if (!valid) return;
+    onUpdate(item.id, { name: name.trim(), meal, ...totals, calories: Math.round(totals.calories), ingredients: hasIngredients ? ingredients : item.ingredients }); onClose();
+  }}>
+    <div className="detail-scroll">
+      {item.imageUrl ? <div className="detail-photo"><img src={item.imageUrl} alt={item.name} /><button type="button" aria-label="Back to Today" title="Back" onClick={onClose}><ChevronLeft size={25} /></button></div> : <button type="button" className="text-back" onClick={onClose}><ChevronLeft size={19} />Today</button>}
+      <div className="detail-body">
+        <h1 id="meal-title">{name || 'Meal details'}</h1>
+        <p className="detail-calories"><strong>{Math.round(totals.calories).toLocaleString('en-US')}</strong> kcal</p>
+        <fieldset className="meal-segments"><legend>Meal type</legend><div>{(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(value => <button type="button" key={value} aria-pressed={meal === value} className={meal === value ? 'is-selected' : ''} onClick={() => setMeal(value)}>{value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div></fieldset>
+        <div className="detail-macros">{(['protein', 'carbs', 'fat'] as const).map(key => <div key={key} className={`detail-macro detail-macro--${key}`}><span />{key.charAt(0).toUpperCase() + key.slice(1)}<strong>{Number(totals[key].toFixed(1))}<small>g</small></strong></div>)}</div>
+        {hasIngredients && <div className="ingredients-list">{ingredients!.map((food, index) => {
+          const base = portion(item.ingredients![index]);
+          const amount = amounts[index] ?? base.amount;
+          return <div className="ingredient-row" key={index}><div><strong>{food.name}</strong><small>{food.calories} kcal</small></div><div className="ingredient-stepper"><button type="button" title="Decrease portion" aria-label={`Decrease ${food.name}`} disabled={amount <= base.step} onClick={() => setAmounts(values => values.map((value, i) => i === index ? Math.max(base.step, value - base.step) : value))}><Minus size={18} /></button><span>{amount}<small>{base.unit}</small></span><button type="button" title="Increase portion" aria-label={`Increase ${food.name}`} onClick={() => setAmounts(values => values.map((value, i) => i === index ? value + base.step : value))}><Plus size={18} /></button></div></div>;
+        })}</div>}
+        <label className="app-field">Meal name<input required value={name} onChange={event => setName(event.target.value)} /></label>
+        {!hasIngredients && <div className="manual-nutrients">{keys.map(key => <label className="app-field" key={key}>{key.charAt(0).toUpperCase() + key.slice(1)} ({key === 'calories' ? 'kcal' : 'g'})<input type="number" min={0} required step={key === 'calories' ? 1 : 0.1} value={nutrition[key]} onChange={event => setNutrition({ ...nutrition, [key]: event.target.value })} /></label>)}</div>}
+        {item.source === 'ai_camera' && <p className="settings-note">Estimated nutrition</p>}
       </div>
     </div>
-  );
-};
+    <footer className="detail-footer"><button type="submit" disabled={!valid} className="primary-command"><Check size={18} />Save changes</button><button type="button" className="delete-command" onClick={() => { onDelete(item.id); onClose(); }}><Trash2 size={17} />Delete meal</button></footer>
+  </form>;
+}

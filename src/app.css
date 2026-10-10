@@ -1,0 +1,158 @@
+.app-root { min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: #080808; padding: 0; }
+.kalo-shell { --bg: #15120d; --surface: #211b14; --border: #342c22; --text: #f5f1e8; --muted: #a89b85; --gold: #f9bc35; --orange: #ef9916; --track: #30281f; --water: #65a8bc; --protein: #db613c; --fat: #b1814d; position: relative; width: 100%; height: 100dvh; background: var(--bg); color: var(--text); overflow: hidden; letter-spacing: 0; font-size: 14px; }
+.kalo-shell[data-theme="light"] { --bg: #f6f7f8; --surface: #fff; --border: #dfe1e4; --text: #211e19; --muted: #736c61; --gold: #b97606; --orange: #ed9a16; --track: #e9e6e1; --water: #39869a; --protein: #bf4e2d; --fat: #957044; }
+.kalo-shell button { cursor: pointer; }
+.kalo-shell button:disabled { opacity: .4; cursor: default; }
+.kalo-shell :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.app-surface { height: 100%; display: flex; flex-direction: column; }
+.app-brandbar { flex: 0 0 54px; display: flex; align-items: center; justify-content: space-between; padding: max(9px, env(safe-area-inset-top)) 20px 8px; }
+.app-brandbar > button:first-child { display: flex; align-items: center; min-height: 38px; }
+.app-brandbar .text-white { color: var(--text); }
+.icon-command { width: 38px; height: 38px; display: grid; place-items: center; color: var(--gold); }
+.app-main { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.app-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 14px 20px 36px; }
+.app-scroll::-webkit-scrollbar { display: none; }
+.app-nav { flex-shrink: 0; min-height: 78px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; border-top: 1px solid var(--border); background: var(--bg); padding: 6px 10px max(12px, env(safe-area-inset-bottom)); z-index: 10; }
+.app-nav > button { color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 48px; gap: 5px; font-size: 10px; }
+.app-nav > button[aria-current="page"] { color: var(--gold); }
+.app-nav > .center-camera { width: 64px; height: 64px; min-height: 64px; justify-self: center; margin-top: -30px; border: 6px solid var(--bg); box-sizing: content-box; border-radius: 26px; background: #f3a51e; color: #1c160e; }
+.today-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+.today-heading p { font-size: 12px; color: var(--muted); margin: 0 0 7px; }
+.today-heading h1, .settings-page h1, .manual-page h1 { font-size: 27px; line-height: 1.25; font-weight: 730; margin: 0; }
+.day-streak { border: 1px solid var(--border); background: var(--surface); border-radius: 24px; display: flex; align-items: center; gap: 8px; padding: 9px 13px; font-weight: 650; }
+.day-streak svg { color: var(--gold); }
+.week-strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0 0 20px; }
+.week-strip button { min-width: 0; display: flex; flex-direction: column; align-items: center; color: var(--muted); gap: 11px; }
+.week-strip button > span { font-size: 10px; }
+.week-strip strong { display: grid; place-items: center; width: 100%; max-width: 43px; aspect-ratio: 1; border: 1.5px dashed var(--border); border-radius: 50%; font-size: 14px; font-weight: 650; }
+.week-strip .is-selected { color: var(--gold); }
+.week-strip .is-selected strong { border: 2px solid var(--gold); outline: 2px solid var(--track); outline-offset: -7px; }
+.calorie-panel { border: 1px solid var(--border); background: var(--surface); border-radius: 24px; padding: 16px 16px 19px; }
+.calorie-panel__top { display: grid; grid-template-columns: minmax(0, 1fr) 42px; align-items: center; gap: 8px; }
+.water-gauge { grid-column: 2; grid-row: 1; display: flex; align-items: center; flex-direction: column; position: relative; gap: 8px; font-size: 11px; }
+.water-gauge > span { color: var(--water); }
+.water-gauge__track { height: 90px; width: 26px; border-radius: 18px; background: var(--track); overflow: hidden; display: flex; align-items: flex-end; }
+.water-gauge__track i { display: block; width: 100%; background: var(--water); border-radius: inherit; transition: height .25s ease; }
+.water-gauge strong { font-weight: 600; text-align: center; font-size: 13px; }
+.water-gauge strong small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; font-weight: 400; }
+.water-gauge button { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--water); color: var(--bg); }
+.water-gauge .water-gauge__minus { position: absolute; bottom: -28px; width: 24px; height: 24px; background: transparent; color: var(--water); }
+.calorie-ring { position: relative; grid-column: 1; grid-row: 1; width: 100%; max-width: 200px; aspect-ratio: 1; margin: 0 auto; }
+.calorie-ring > svg { display: block; width: 100%; height: 100%; }
+.calorie-ring__arc { transition: stroke-dashoffset .4s ease; }
+.calorie-ring__number { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 11px; }
+.calorie-ring__number strong { font-size: 39px; line-height: 1; font-weight: 750; font-variant-numeric: tabular-nums; }
+.calorie-ring__number > span { font-size: 10px; color: var(--muted); }
+.calorie-ring__eaten { position: absolute; transform: translate(-50%, -50%); background: #f3a51e; color: #1c160e; border: 2px solid var(--surface); border-radius: 16px; padding: 3px 6px; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 750; white-space: nowrap; }
+.macro-bars { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.macro-bars > div > div { display: flex; align-items: baseline; justify-content: space-between; gap: 3px; font-size: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.macro-bars strong { color: var(--muted); font-size: 10px; font-weight: 600; }
+.macro-bars small { font-size: 9px; font-weight: 400; }
+.macro-bars__track { display: block; height: 6px; border-radius: 5px; background: var(--track); overflow: hidden; }
+.macro-bars__track i { display: block; height: 100%; border-radius: inherit; background: var(--macro-color); transition: width .3s ease; }
+.meals-section { margin-top: 22px; }
+.meals-section > header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.meals-section h2 { font-size: 16px; font-weight: 600; }
+.date-control { display: grid; place-items: center; position: relative; width: 34px; height: 34px; color: var(--muted); cursor: pointer; }
+.date-control input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.meals-empty { color: var(--muted); padding: 20px 0 25px; text-align: center; font-size: 12px; }
+.meal-group { margin-bottom: 16px; }
+.meal-group__heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 11px; color: var(--muted); }
+.meal-group__heading h3 { display: flex; align-items: center; gap: 6px; color: var(--text); font-size: 13px; }
+.meal-group__heading svg { color: var(--gold); }
+.meal-swipe { position: relative; margin-bottom: 9px; border-radius: 18px; isolation: isolate; }
+.meal-swipe__actions { position: absolute; inset: 0; display: flex; justify-content: space-between; overflow: hidden; border-radius: inherit; }
+.meal-swipe__actions button { width: 70px; display: grid; place-items: center; background: #f9bc35; color: #211706; }
+.meal-swipe__actions button:last-child { background: #b94a2d; color: white; }
+.meal-row { position: relative; display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: inherit; min-height: 78px; touch-action: pan-y; transition: transform .12s ease; }
+.meal-row__open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 4px 10px 11px; }
+.meal-row__photo { flex-shrink: 0; width: 49px; height: 49px; border-radius: 14px; object-fit: cover; background: var(--track); display: grid; place-items: center; color: var(--muted); }
+.meal-row__copy { flex: 1; min-width: 0; }
+.meal-row__copy strong { display: block; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.45; }
+.meal-row__time { display: block; font-size: 9px; color: var(--muted); }
+.meal-row__macros { display: flex; flex-wrap: wrap; gap: 5px; font-size: 9px; color: var(--muted); margin-top: 4px; }
+.meal-row__macros > span { display: flex; align-items: center; gap: 3px; }
+.meal-row__macros i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; }
+.protein-dot { background: var(--protein); }.carbs-dot { background: var(--gold); }.fat-dot { background: var(--fat); }
+.meal-row__calories { display: flex; flex-direction: column; flex-shrink: 0; font-size: 16px; font-weight: 700; text-align: right; }
+.meal-row__calories small { font-size: 9px; color: var(--muted); font-weight: 400; margin-top: 3px; }
+.meal-row__more { align-self: center; width: 26px; min-height: 44px; color: var(--muted); display: grid; place-items: center; flex-shrink: 0; }
+.meal-row__menu { position: absolute; right: 8px; top: 52px; z-index: 3; width: 150px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 5px 20px #0005; border-radius: 8px; padding: 4px; }
+.meal-row__menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px; font-size: 12px; text-align: left; }
+.manual-log { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 55px; border: 1.5px dashed var(--border); border-radius: 20px; color: var(--gold); font-size: 16px; margin-top: 12px; }
+.settings-page h1 { margin-bottom: 42px; }
+.settings-page section { margin-bottom: 18px; }
+.settings-page section h2 { color: var(--muted); font-size: 11px; margin: 0 0 8px 6px; }
+.settings-group { border: 1px solid var(--border); background: var(--surface); border-radius: 19px; overflow: hidden; }
+.settings-row { display: flex; align-items: center; gap: 11px; width: 100%; padding: 13px; min-height: 61px; text-align: left; }
+.settings-row + .settings-row { border-top: 1px solid var(--border); }
+.settings-symbol { width: 32px; height: 32px; border-radius: 11px; background: #f9bc3512; color: var(--gold); display: grid; place-items: center; flex-shrink: 0; }
+.settings-symbol--health { background: #dc603515; color: var(--protein); }
+.settings-row__label { flex: 1; font-size: 13px; min-width: 0; line-height: 1.4; }
+.settings-row__label small { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+.settings-row__value { font-size: 11px; color: var(--muted); }
+.settings-row > svg { flex-shrink: 0; color: var(--muted); }
+.settings-coming { font-size: 9px; color: var(--muted); background: var(--track); border-radius: 7px; padding: 5px 6px; }
+.is-unavailable { opacity: .6; }
+.settings-note { color: var(--muted); font-size: 11px; line-height: 1.7; margin: 12px 5px 18px; }
+.appearance-switch { position: relative; width: 54px; height: 32px; border-radius: 20px; background: #f9bc35; color: #5b440f; display: flex; align-items: center; justify-content: space-around; flex-shrink: 0; }
+.appearance-switch > span { position: absolute; left: 4px; top: 4px; width: 24px; height: 24px; border-radius: 50%; background: #fff; display: grid; place-items: center; color: #15120d; transition: transform .2s ease; }
+.appearance-switch > span.is-dark { transform: translateX(22px); }
+.app-switch { width: 46px; height: 28px; border-radius: 18px; padding: 3px; background: var(--track); flex-shrink: 0; }
+.app-switch > span { display: block; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s ease; }
+.app-switch.is-on { background: #f9bc35; }
+.app-switch.is-on > span { transform: translateX(18px); }
+.text-back { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); min-height: 42px; font-size: 12px; margin-bottom: 12px; }
+.settings-plan { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+.settings-plan > .text-back { margin: 0 20px; flex-shrink: 0; align-self: flex-start; }
+.app-dialog-layer { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+.app-dialog-layer > * { pointer-events: auto; }
+.detail-page, .scanner-dialog { position: absolute; inset: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 0; }
+.detail-scroll, .scanner-scroll { flex: 1; overflow-y: auto; min-height: 0; scrollbar-width: none; }
+.detail-photo { position: relative; aspect-ratio: 4 / 3; width: 100%; }
+.detail-photo img { width: 100%; height: 100%; object-fit: cover; }
+.detail-photo button { position: absolute; top: max(20px, env(safe-area-inset-top)); left: 20px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: #15120dcc; color: #fff; }
+.detail-scroll > .text-back { margin: 12px 20px 0; }
+.detail-body { padding: 22px 20px; }
+.detail-body h1 { font-size: 23px; font-weight: 700; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }
+.detail-calories { text-align: center; color: var(--muted); font-size: 11px; margin: 12px 0 20px; }
+.detail-calories strong { color: var(--gold); font-size: 32px; margin-right: 5px; }
+.meal-segments { border: 0; padding: 0; margin: 0 0 20px; }
+.meal-segments legend { font-size: 10px; color: var(--muted); text-align: center; width: 100%; margin-bottom: 8px; }
+.meal-segments > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; background: var(--surface); border: 1px solid var(--border); padding: 3px; border-radius: 13px; }
+.meal-segments button { font-size: 11px; min-height: 34px; border-radius: 10px; color: var(--muted); }
+.meal-segments .is-selected { background: #f9bc35; color: #211706; }
+.detail-macros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-bottom: 14px; }
+.detail-macro { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; border: 1px solid var(--border); border-radius: 13px; padding: 11px 3px; font-size: 10px; color: var(--muted); }
+.detail-macro > span { width: 6px; height: 6px; border-radius: 50%; background: var(--protein); }
+.detail-macro--carbs > span { background: var(--gold); }.detail-macro--fat > span { background: var(--fat); }
+.detail-macro strong { color: var(--text); font-size: 12px; }.detail-macro small { color: var(--muted); margin-left: 2px; font-weight: 400; font-size: 9px; }
+.ingredient-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 17px; padding: 13px; margin: 8px 0; min-height: 66px; }
+.ingredient-row > div:first-child { min-width: 0; }.ingredient-row strong { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }.ingredient-row small { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+.ingredient-stepper { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.ingredient-stepper button { border: 1px solid var(--border); width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: var(--gold); }
+.ingredient-stepper > span { min-width: 36px; text-align: center; font-size: 13px; }.ingredient-stepper small { font-size: 9px; margin: 0; }
+.app-field { display: flex; flex-direction: column; gap: 8px; font-size: 11px; color: var(--muted); margin: 18px 0; }
+.app-field input, .app-field select { color: var(--text); min-width: 0; width: 100%; background: var(--surface); border: 1px solid var(--border); padding: 12px; border-radius: 10px; font-size: 14px; }
+.manual-nutrients { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.manual-page .detail-scroll { padding: 12px 20px; }.manual-page h1 { margin: 10px 0 28px; }
+.detail-footer { flex-shrink: 0; padding: 12px 20px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
+.primary-command { min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border-radius: 16px; background: #f9bc35; color: #211706; font-weight: 650; font-size: 15px; }
+.delete-command { color: var(--protein); display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 40px; font-size: 12px; margin-top: 5px; }
+.scanner-dialog > header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); }.scanner-dialog h2 { font-size: 18px; font-weight: 600; }
+.app-toast { position: absolute; z-index: 60; bottom: 98px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 15px 18px; box-shadow: 0 4px 20px #0003; font-size: 12px; }
+.app-toast button { color: var(--gold); font-weight: 600; min-height: 28px; }
+.opening-splash { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); animation: splash-away 3s ease both; }
+.opening-splash__brand { display: flex; align-items: center; gap: 17px; }.opening-splash__brand img { width: 58px; height: 58px; border-radius: 17px; animation: brand-arrive .6s ease both; }
+.opening-splash__name { display: flex; font-size: 58px; font-weight: 750; line-height: 1.2; }.opening-splash__name > span { display: inline-block; animation: brand-arrive .55s ease both; }
+.opening-splash__line { margin-top: 28px; width: 38px; height: 3px; background: var(--gold); border-radius: 2px; transform-origin: left; animation: brand-line 2.5s ease both; }
+@keyframes brand-arrive { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes brand-line { 0% { transform: scaleX(0); opacity: 0; } 35%, 80% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+@keyframes splash-away { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
+/* Existing progress, recipe and plan controls share the reference palette. */
+.app-main .bg-\[\#18181B\], .app-main .bg-zinc-900, .app-main .bg-\[\#121214\] { background-color: var(--surface); }
+.app-main .text-white { color: var(--text); }.app-main .text-zinc-400, .app-main .text-zinc-500, .app-main .text-zinc-300 { color: var(--muted); }
+.app-main .border-zinc-800, .app-main .border-zinc-700 { border-color: var(--border); }
+@media (min-width: 600px) { .app-root { padding: 16px; }.kalo-shell { max-width: 430px; height: min(900px, calc(100dvh - 32px)); border: 1px solid var(--border); border-radius: 28px; box-shadow: 0 24px 70px #0005; } }
+@media (max-width: 350px) { .app-scroll { padding-left: 15px; padding-right: 15px; }.calorie-panel { padding: 12px; }.calorie-ring__number strong { font-size: 31px; }.calorie-ring__number > span { font-size: 9px; }.week-strip { gap: 4px; }.meal-row__photo { width: 40px; height: 44px; }.meal-row__open { gap: 7px; }.detail-body { padding: 18px 14px; }.ingredient-row { padding: 10px; }.ingredient-stepper { gap: 4px; } }
+@media (prefers-reduced-motion: reduce) { .opening-splash, .opening-splash__brand img, .opening-splash__name > span, .opening-splash__line { animation: none; }.calorie-ring__arc, .meal-row, .water-gauge__track i, .macro-bars__track i { transition: none; } }

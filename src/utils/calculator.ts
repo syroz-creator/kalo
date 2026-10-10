@@ -59,7 +59,16 @@ export function calculateEnergyNeeds(profile: UserProfile): DailyEnergyNeeds {
   const roundedBmr = Math.round(bmr);
 
   // Target calories can be custom override or calculated TDEE
-  const effectiveCalories = profile.customTargetCalories ?? roundedTdee;
+  const weeklyChange = Math.min(0.75, Math.max(0.1, profile.weeklyWeightChangeKg ?? 0.25));
+  // Weekly pace is an estimate; adult weight-loss targets have a calorie floor.
+  const dailyAdjustment = weeklyChange * 7700 / 7;
+  let goalCalories = roundedTdee;
+  if (age >= 18 && profile.goal === 'lose') {
+    goalCalories = Math.max(sex === 'male' ? 1500 : 1200, roundedTdee - dailyAdjustment);
+  } else if (age >= 18 && profile.goal === 'gain') {
+    goalCalories = roundedTdee + dailyAdjustment;
+  }
+  const effectiveCalories = profile.customTargetCalories ?? Math.round(goalCalories / 10) * 10;
 
   // Balanced macronutrient distribution:
   // Protein: ~25% of energy (4 kcal/g)
@@ -71,7 +80,7 @@ export function calculateEnergyNeeds(profile: UserProfile): DailyEnergyNeeds {
 
   return {
     bmr: roundedBmr,
-    tdee: roundedTdee,
+    tdee: effectiveCalories,
     equationName,
     isTeenEquation,
     explanation,
