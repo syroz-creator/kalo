@@ -39,6 +39,9 @@ export default function App() {
   const [snappedInitialImage, setSnappedInitialImage] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<LoggedItem | null>(null);
   const directCameraInputRef = useRef<HTMLInputElement>(null);
+  const nativeCameraPending = useRef(false);
+  const scanOpenRef = useRef(false);
+  scanOpenRef.current = isAiSnapModalOpen;
   const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const showToast = (message: string, undo?: () => void) => {
@@ -48,9 +51,15 @@ export default function App() {
   };
   useEffect(() => () => clearTimeout(toastTimer.current), []);
   useEffect(() => {
+    const input = directCameraInputRef.current;
+    const cancel = () => { nativeCameraPending.current = false; };
+    input?.addEventListener('cancel', cancel);
+    return () => input?.removeEventListener('cancel', cancel);
+  }, []);
+  useEffect(() => {
     const reopen = () => { setOpeningKey(key => key + 1); setOpening(true); };
-    const visibility = () => { if (document.visibilityState === 'visible') reopen(); };
-    const pageshow = (event: PageTransitionEvent) => { if (event.persisted) reopen(); };
+    const visibility = () => { if (document.visibilityState === 'visible' && !nativeCameraPending.current && !scanOpenRef.current) reopen(); };
+    const pageshow = (event: PageTransitionEvent) => { if (event.persisted && !nativeCameraPending.current && !scanOpenRef.current) reopen(); };
     document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pageshow', pageshow);
     return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pageshow', pageshow); };
@@ -90,15 +99,17 @@ export default function App() {
   };
   const handlePhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) { nativeCameraPending.current = false; return; }
     const reader = new FileReader();
-    reader.onload = () => { setSnappedInitialImage(reader.result as string); setIsAiSnapModalOpen(true); };
+    reader.onload = () => { nativeCameraPending.current = false; setOpening(false); setSnappedInitialImage(reader.result as string); setIsAiSnapModalOpen(true); };
+    reader.onerror = () => { nativeCameraPending.current = false; showToast('Could not read this photo. Please try again.'); };
     reader.readAsDataURL(file); event.target.value = '';
   };
   const openCamera = () => {
     const hour = new Date().getHours();
     setTargetMeal(hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 21 ? 'dinner' : 'snacks');
-    setSnappedInitialImage(null); setIsAiSnapModalOpen(true);
+    nativeCameraPending.current = true;
+    directCameraInputRef.current?.click();
   };
   const logScan = (result: { meal: MealType; dishName: string; totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; portionDescription: string; imageUrl?: string; ingredients?: AnalyzedFoodItem[] }) => {
     const logged = addMeal({ foodId: `ai-${id()}`, date: selectedDate, meal: result.meal, name: result.dishName, quantity: 1, unit: result.portionDescription || 'portion', calories: result.totalCalories, protein: result.totalProtein, carbs: result.totalCarbs, fat: result.totalFat, source: 'ai_camera', imageUrl: result.imageUrl, ingredients: result.ingredients });
@@ -128,9 +139,9 @@ export default function App() {
       <OnboardingModal isOpen={isOnboardingOpen} initialProfile={userProfile} onComplete={profile => { setUserProfile(profile); setIsOnboardingOpen(false); showToast('Your daily target is set.'); }} />
       {manualMeal && <ManualMealModal meal={manualMeal} date={selectedDate} onClose={() => setManualMeal(null)} onLog={addMeal} />}
       <EditLoggedModal isOpen={!!editingItem} item={editingItem} onClose={() => setEditingItem(null)} onUpdate={(itemId, updates) => { setLoggedItems(items => items.map(item => item.id === itemId ? { ...item, ...updates } : item)); setRecipes(items => items.map(item => item.foodId === editingItem?.foodId ? { ...item, ...updates } : item)); showToast('Meal updated'); }} onDelete={deleteMeal} />
-      {isAiSnapModalOpen && <section className="scanner-dialog" role="dialog" aria-modal="true" aria-label="Meal photo"><header><h2>Meal photo</h2><button type="button" className="icon-command" aria-label="Close meal photo" onClick={() => setIsAiSnapModalOpen(false)}><X size={22} /></button></header><div className="scanner-scroll"><AiMealScanner targetMeal={targetMeal} initialImage={snappedInitialImage} onChangeTargetMeal={setTargetMeal} onLogMealResult={logScan} onClose={() => setIsAiSnapModalOpen(false)} isModal /></div></section>}
+      {isAiSnapModalOpen && <section className="scanner-dialog" role="dialog" aria-modal="true" aria-label="Meal photo"><header><h2>Meal photo</h2><button type="button" className="icon-command" aria-label="Close meal photo" onClick={() => setIsAiSnapModalOpen(false)}><X size={22} /></button></header><div className="scanner-scroll"><AiMealScanner targetMeal={targetMeal} initialImage={snappedInitialImage} onChangeTargetMeal={setTargetMeal} onLogMealResult={logScan} onClose={() => setIsAiSnapModalOpen(false)} onNativeCameraPendingChange={pending => { nativeCameraPending.current = pending; }} isModal /></div></section>}
     </div>
-    <input ref={directCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} hidden />
+    <input ref={directCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} aria-label="Photograph meal" hidden />
     {opening && <OpeningSplash key={openingKey} onComplete={finishOpening} />}
   </div></div>;
 }
