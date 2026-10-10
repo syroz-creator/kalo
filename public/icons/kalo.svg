@@ -1,6 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="104" fill="#facc15"/>
-  <path d="M398 250a144 144 0 1 1-132-138" fill="none" stroke="#121214" stroke-width="40" stroke-linecap="round"/>
-  <path d="m265 262 74-74" fill="none" stroke="#121214" stroke-width="30" stroke-linecap="round"/>
-  <ellipse cx="358" cy="163" rx="29" ry="44" transform="rotate(45 358 163)" fill="#121214"/>
+  <rect width="512" height="512" fill="#ffd12f"/>
+  <circle cx="256" cy="256" r="126" fill="#fffbed" stroke="#191810" stroke-width="14"/>
+  <circle cx="256" cy="256" r="97" fill="none" stroke="#191810" stroke-width="6"/>
+  <path d="M84 144v51c0 20 12 31 27 31s27-11 27-31v-51m-27 0v231" fill="none" stroke="#191810" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <ellipse cx="408" cy="177" rx="25" ry="39" fill="#191810"/>
+  <path d="M408 205v170" stroke="#191810" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="246" cy="270" r="43" fill="#f4a417"/>
+  <path d="M270 233c-3-34 16-55 53-57 5 36-14 59-53 57Z" fill="#477849"/>
+  <path d="m269 238 29-32" fill="none" stroke="#191810" stroke-width="6" stroke-linecap="round"/>
 </svg>
