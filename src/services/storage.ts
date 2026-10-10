@@ -1,4 +1,23 @@
 import { FoodItem, LoggedItem, RecipeItem, UserProfile, WorkoutItem } from '../types';
+import { collectPhotoRecipes } from '../utils/photoRecipes';
+
+const PHOTO_RECIPES_KEY = 'kalo_photo_recipes_v1';
+
+export function loadPhotoRecipes(history: LoggedItem[]): LoggedItem[] {
+  try {
+    const raw = localStorage.getItem(PHOTO_RECIPES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return collectPhotoRecipes(parsed);
+    }
+  } catch (error) { console.error('Failed to load photo recipes', error); }
+  return collectPhotoRecipes(history);
+}
+
+export function savePhotoRecipes(recipes: LoggedItem[]): void {
+  try { localStorage.setItem(PHOTO_RECIPES_KEY, JSON.stringify(recipes)); }
+  catch (error) { console.error('Failed to save photo recipes', error); }
+}
 
 const STORAGE_KEYS = {
   LOGGED_ITEMS: 'kalo_logged_items_v2',

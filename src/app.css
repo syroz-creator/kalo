@@ -5,11 +5,8 @@
 .kalo-shell button:disabled { opacity: .4; cursor: default; }
 .kalo-shell :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 .app-surface { height: 100%; display: flex; flex-direction: column; }
-.app-brandbar { flex: 0 0 54px; display: flex; align-items: center; justify-content: space-between; padding: max(9px, env(safe-area-inset-top)) 20px 8px; }
-.app-brandbar > button:first-child { display: flex; align-items: center; min-height: 38px; }
-.app-brandbar .text-white { color: var(--text); }
 .icon-command { width: 38px; height: 38px; display: grid; place-items: center; color: var(--gold); }
-.app-main { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.app-main { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding-top: max(12px, env(safe-area-inset-top)); }
 .app-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; padding: 14px 20px 36px; }
 .app-scroll::-webkit-scrollbar { display: none; }
 .app-nav { flex-shrink: 0; min-height: 78px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; border-top: 1px solid var(--border); background: var(--bg); padding: 6px 10px max(12px, env(safe-area-inset-bottom)); z-index: 10; }
@@ -143,11 +140,10 @@
 .app-toast { position: absolute; z-index: 60; bottom: 98px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 15px 18px; box-shadow: 0 4px 20px #0003; font-size: 12px; }
 .app-toast button { color: var(--gold); font-weight: 600; min-height: 28px; }
 .opening-splash { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); animation: splash-away 3s ease both; }
-.opening-splash__brand { display: flex; align-items: center; gap: 17px; }.opening-splash__brand img { width: 58px; height: 58px; border-radius: 17px; animation: brand-arrive .6s ease both; }
-.opening-splash__name { display: flex; font-size: 58px; font-weight: 750; line-height: 1.2; }.opening-splash__name > span { display: inline-block; animation: brand-arrive .55s ease both; }
-.opening-splash__line { margin-top: 28px; width: 38px; height: 3px; background: var(--gold); border-radius: 2px; transform-origin: left; animation: brand-line 2.5s ease both; }
-@keyframes brand-arrive { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes brand-line { 0% { transform: scaleX(0); opacity: 0; } 35%, 80% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
+.opening-splash__wordmark { font-family: "Baskerville", "Iowan Old Style", "Palatino Linotype", Georgia, serif; font-size: 82px; font-style: italic; font-weight: 400; line-height: 1.3; padding: 0 12px; color: transparent; background: linear-gradient(110deg, #b9ad94 0%, #e9dfcd 40%, #fffdf7 48%, #fff 50%, #fffdf7 52%, #e9dfcd 60%, #b9ad94 100%); background-size: 260% 100%; background-clip: text; -webkit-background-clip: text; animation: wordmark-shine 3s ease-in-out both, wordmark-arrive .5s ease both; }
+.kalo-shell[data-theme="light"] .opening-splash__wordmark { background-image: linear-gradient(110deg, #29231a 0%, #29231a 40%, #b99142 48%, #edca7d 50%, #b99142 52%, #29231a 60%, #29231a 100%); }
+@keyframes wordmark-arrive { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wordmark-shine { 0%, 15% { background-position: 100% 50%; } 85%, 100% { background-position: 0% 50%; } }
 @keyframes splash-away { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
 /* Existing progress, recipe and plan controls share the reference palette. */
 .app-main .bg-\[\#18181B\], .app-main .bg-zinc-900, .app-main .bg-\[\#121214\] { background-color: var(--surface); }
@@ -155,4 +151,23 @@
 .app-main .border-zinc-800, .app-main .border-zinc-700 { border-color: var(--border); }
 @media (min-width: 600px) { .app-root { padding: 16px; }.kalo-shell { max-width: 430px; height: min(900px, calc(100dvh - 32px)); border: 1px solid var(--border); border-radius: 28px; box-shadow: 0 24px 70px #0005; } }
 @media (max-width: 350px) { .app-scroll { padding-left: 15px; padding-right: 15px; }.calorie-panel { padding: 12px; }.calorie-ring__number strong { font-size: 31px; }.calorie-ring__number > span { font-size: 9px; }.week-strip { gap: 4px; }.meal-row__photo { width: 40px; height: 44px; }.meal-row__open { gap: 7px; }.detail-body { padding: 18px 14px; }.ingredient-row { padding: 10px; }.ingredient-stepper { gap: 4px; } }
-@media (prefers-reduced-motion: reduce) { .opening-splash, .opening-splash__brand img, .opening-splash__name > span, .opening-splash__line { animation: none; }.calorie-ring__arc, .meal-row, .water-gauge__track i, .macro-bars__track i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .opening-splash, .opening-splash__wordmark { animation: none; }.opening-splash__wordmark { background: none !important; color: var(--text); }.calorie-ring__arc, .meal-row, .water-gauge__track i, .macro-bars__track i { transition: none; } }
+.recipes-heading { display: flex; justify-content: space-between; align-items: center; margin: 0 0 24px; }
+.recipes-heading h1 { font-size: 27px; line-height: 1.25; font-weight: 730; }
+.recipes-heading > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.recipe-search { display: flex; align-items: center; gap: 9px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); background: var(--surface); margin-bottom: 20px; }
+.recipe-search input { flex: 1; min-width: 0; width: 100%; font-size: 12px; color: var(--text); background: transparent; outline: none; }
+.recipe-search:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }
+.recipes-empty { min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; text-align: center; color: var(--muted); }
+.recipes-empty h2 { font-size: 15px; color: var(--text); font-weight: 500; }.recipes-empty .primary-command { width: auto; padding: 0 20px; font-size: 13px; }
+.photo-recipes__list { display: flex; flex-direction: column; gap: 16px; }
+.photo-recipe { border: 1px solid var(--border); background: var(--surface); border-radius: 18px; overflow: hidden; }
+.photo-recipe__open { display: grid; grid-template-columns: minmax(0, 1fr) 22px; text-align: left; width: 100%; }
+.photo-recipe__open img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; grid-column: 1 / -1; }
+.photo-recipe__summary { min-width: 0; padding: 14px; }.photo-recipe__summary > strong { display: block; font-size: 15px; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }.photo-recipe__summary > span { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; color: var(--gold); font-size: 12px; margin-top: 6px; }.photo-recipe__summary small { color: var(--muted); font-size: 11px; }
+.photo-recipe__open > svg { align-self: center; color: var(--muted); margin-left: -7px; }
+.photo-recipe__details { padding: 0 14px 12px; }.photo-recipe__details h2 { margin-top: 20px; font-size: 13px; font-weight: 600; }
+.recipe-nutrition { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 14px 0; border-block: 1px solid var(--border); }
+.recipe-nutrition > span { color: var(--muted); font-size: 10px; }.recipe-nutrition strong { display: block; color: var(--text); font-size: 15px; font-weight: 600; margin-top: 5px; }.recipe-nutrition i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 4px; }
+.recipe-ingredients { padding: 0; list-style: none; margin: 8px 0; }.recipe-ingredients li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }.recipe-ingredients li > span:first-child { min-width: 0; }.recipe-ingredients strong { display: block; font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }.recipe-ingredients small { display: block; font-size: 10px; color: var(--muted); margin-top: 3px; }.recipe-ingredients li > span:last-child { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.recipe-log { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; align-items: end; }.recipe-log .app-field { margin: 0; }.recipe-log .primary-command { font-size: 13px; min-height: 45px; border-radius: 10px; }
