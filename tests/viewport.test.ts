@@ -10,12 +10,14 @@ function setupViewport(t: TestContext) {
   const viewport = Object.assign(new EventTarget(), { height: 873, scale: 1, offsetTop: 0 });
   const document = Object.assign(new EventTarget(), {
     activeElement: null as Field | null,
-    documentElement: { clientHeight: 932, style: {
+    documentElement: { clientHeight: 932, dataset: {} as Record<string, string>, style: {
       setProperty: (name: string, value: string) => properties.set(name, value),
       removeProperty: (name: string) => properties.delete(name),
     } },
   });
-  const window = Object.assign(new EventTarget(), { visualViewport: viewport });
+  const standalone = Object.assign(new EventTarget(), { matches: false });
+  const navigator = { standalone: false };
+  const window = Object.assign(new EventTarget(), { visualViewport: viewport, navigator, matchMedia: () => standalone });
   const globals = { document, window, HTMLElement: Field, requestAnimationFrame: () => 1, cancelAnimationFrame: () => {} };
   const previous = new Map(Object.keys(globals).map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
   for (const [name, value] of Object.entries(globals)) Object.defineProperty(globalThis, name, { configurable: true, value });
@@ -27,7 +29,7 @@ function setupViewport(t: TestContext) {
       else Reflect.deleteProperty(globalThis, name);
     }
   });
-  return { properties, viewport, document, window, focus: () => {
+  return { properties, viewport, document, window, standalone, navigator, focus: () => {
     document.activeElement = new Field();
     document.dispatchEvent(new Event('focusin'));
   } };
@@ -66,4 +68,35 @@ test('restoring the app clears a stale keyboard height even if the input remains
   viewport.height = 873;
   window.dispatchEvent(new Event('pageshow'));
   assert.equal(properties.has('--app-height'), false);
+});
+
+test('iOS Home Screen mode is recognized even when its media query is false', t => {
+  const { document, window, navigator } = setupViewport(t);
+  assert.equal(document.documentElement.dataset.standalone, 'false');
+  navigator.standalone = true;
+  window.dispatchEvent(new Event('pageshow'));
+  assert.equal(document.documentElement.dataset.standalone, 'true');
+});
+
+test('display-mode changes update standalone sizing', t => {
+  const { document, standalone } = setupViewport(t);
+  standalone.matches = true;
+  standalone.dispatchEvent(new Event('change'));
+  assert.equal(document.documentElement.dataset.standalone, 'true');
+  standalone.matches = false;
+  standalone.dispatchEvent(new Event('change'));
+  assert.equal(document.documentElement.dataset.standalone, 'false');
+});
+
+test('returning from the camera or rotating clears stale keyboard sizing', t => {
+  const { properties, viewport, document, window, focus } = setupViewport(t);
+  for (const [target, event] of [[document, 'visibilitychange'], [window, 'orientationchange']] as const) {
+    focus();
+    viewport.height = 500;
+    viewport.dispatchEvent(new Event('resize'));
+    assert.equal(properties.get('--app-height'), '500px');
+    viewport.height = 873;
+    target.dispatchEvent(new Event(event));
+    assert.equal(properties.has('--app-height'), false);
+  }
 });

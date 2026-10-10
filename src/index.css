@@ -2,6 +2,7 @@
 
 @layer base {
   html {
+    background-color: #15120d;
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -10,7 +11,7 @@
   }
 
   body {
-    background-color: #050505;
+    background-color: #15120d;
     color: #FFFFFF;
     margin: 0;
     padding: 0;
@@ -27,9 +28,17 @@ html, body {
   touch-action: pan-x pan-y;
 }
 
+html[data-theme="light"], html[data-theme="light"] body {
+  background-color: #f6f7f8;
+}
+
+body { position: relative; }
+
+/* Avoid iOS Home Screen bugs that offset fixed-position viewport layers. */
 #root {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: var(--app-height, 100dvh);
   overflow: hidden;
@@ -37,8 +46,12 @@ html, body {
 
 /* WebKit can exclude safe areas from dynamic units in Home Screen apps. */
 @media (display-mode: standalone), (display-mode: fullscreen) {
+  html, body { height: 100vh; }
   #root { height: var(--app-height, 100vh); }
 }
+
+html[data-standalone="true"], html[data-standalone="true"] body { height: 100vh; }
+html[data-standalone="true"] #root { height: var(--app-height, 100vh); }
 
 /* iOS focuses smaller text fields by zooming the entire page. */
 #root :is(input, select, textarea, [contenteditable="true"]) {

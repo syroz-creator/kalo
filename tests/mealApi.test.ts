@@ -188,3 +188,19 @@ test('checking an API key also has a bounded wait', async t => {
   t.mock.timers.tick(15000);
   await rejected;
 });
+
+test('billing and overload errors remain actionable without exposing provider details', async t => {
+  saveGeminiKey('personal-test-key');
+  const fetch = t.mock.method(globalThis, 'fetch', async () => json({ error: { code: 402, message: 'secret-value' } }, 402));
+  await assert.rejects(analyzeMealPhoto(photo), /billing.*HTTP 402/);
+  fetch.mock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (new Request(input, init).method === 'GET') return json({ models: [] });
+    return json({ error: { code: 503, message: 'secret-value' } }, 503);
+  });
+  await assert.rejects(analyzeMealPhoto(photo), error => {
+    assert(error instanceof Error);
+    assert.match(error.message, /busy.*HTTP 503/);
+    assert(!error.message.includes('secret-value'));
+    return true;
+  });
+});

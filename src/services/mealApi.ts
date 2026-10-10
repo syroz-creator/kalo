@@ -39,11 +39,13 @@ function geminiError(error: unknown): Error {
       return new Error('Gemini rejected this API key. Update it in Settings > Gemini API key and check its permissions.');
     }
     if (error.status === 429) return new Error('Your Gemini usage limit has been reached. Check your quota in Google AI Studio or try again later.');
+    if (error.status === 402) return new Error('Gemini requires billing or available credits for this API key. Check this project in Google AI Studio. (HTTP 402)');
     if (error.status === 404) return new Error('No compatible meal-scanning model is available for this API key.');
     if (error.status === 400) return new Error('Gemini could not process this request. Check your API key or try a JPEG or PNG meal photo.');
-    return new Error('Gemini is temporarily unavailable. Please try again.');
+    if (error.status === 503) return new Error('Gemini is busy right now. Please try again shortly. (HTTP 503)');
+    return new Error(`Gemini could not complete this scan. Please try again. (HTTP ${error.status})`);
   }
-  if (/^(The scan |This photo |Use a JPEG|No food |No compatible meal-scanning model)/.test(message)) return new Error(message);
+  if (/^(The scan |This photo |Choose a meal photo|Use a JPEG|No food |No compatible meal-scanning model)/.test(message)) return new Error(message);
   return new Error('Cannot connect to Gemini. Check your internet connection and try again.');
 }
 

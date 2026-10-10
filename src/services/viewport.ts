@@ -1,5 +1,6 @@
 export function installViewport() {
   const viewport = window.visualViewport;
+  const standalone = window.matchMedia('(display-mode: standalone), (display-mode: fullscreen)');
   let focusFrame = 0;
   const revealFocusedField = () => {
     cancelAnimationFrame(focusFrame);
@@ -11,6 +12,8 @@ export function installViewport() {
     });
   };
   const fitScreen = () => {
+    // iOS also exposes standalone through navigator when the media query is stale.
+    document.documentElement.dataset.standalone = String(standalone.matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true);
     const field = document.activeElement;
     const editing = field instanceof HTMLElement && field.matches('input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, [contenteditable="true"]');
     const layoutHeight = document.documentElement.clientHeight;
@@ -29,6 +32,9 @@ export function installViewport() {
   fitScreen();
   window.addEventListener('resize', fitScreen);
   window.addEventListener('pageshow', fitScreen);
+  window.addEventListener('orientationchange', fitScreen);
+  standalone.addEventListener('change', fitScreen);
+  document.addEventListener('visibilitychange', fitScreen);
   viewport?.addEventListener('resize', fitScreen);
   document.addEventListener('focusin', fitScreen);
   document.addEventListener('focusout', fitScreen);
@@ -39,10 +45,14 @@ export function installViewport() {
     cancelAnimationFrame(focusFrame);
     window.removeEventListener('resize', fitScreen);
     window.removeEventListener('pageshow', fitScreen);
+    window.removeEventListener('orientationchange', fitScreen);
+    standalone.removeEventListener('change', fitScreen);
+    document.removeEventListener('visibilitychange', fitScreen);
     viewport?.removeEventListener('resize', fitScreen);
     document.removeEventListener('focusin', fitScreen);
     document.removeEventListener('focusout', fitScreen);
     document.removeEventListener('gesturestart', preventZoom);
     document.removeEventListener('gesturechange', preventZoom);
+    delete document.documentElement.dataset.standalone;
   };
 }

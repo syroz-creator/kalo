@@ -86,6 +86,64 @@ test('explicit model selection does not silently change models', async () => {
   assert.equal(calls, 1);
 });
 
+test('an overloaded model switches once to an advertised image-capable model and caches success', async () => {
+  const calls: string[] = [];
+  const ai = clientWithFetch(async (input, init) => {
+    const request = new Request(input, init);
+    calls.push(request.url);
+    if (request.method === 'GET') return jsonResponse({ models: [
+      { name: 'models/gemini-3.5-flash-lite', supportedGenerationMethods: ['generateContent'] },
+      { name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] },
+    ] });
+    if (request.url.includes('gemini-3.8-flash')) return jsonResponse({ error: { code: 503, message: 'Model overloaded' } }, 503);
+    assert.match(request.url, /gemini-3\.5-flash-lite:generateContent/);
+    return generation(meal);
+  });
+  const analyze = createMealAnalyzer(ai);
+  assert.equal((await analyze(image)).totalCalories, 440);
+  assert.equal((await analyze(image)).totalCalories, 440);
+  assert.equal(calls.length, 4);
+  assert.equal(calls.filter(url => url.includes('gemini-3.8-flash:')).length, 1);
+});
+
+test('server errors get at most one backup attempt and do not cache a failed backup', async () => {
+  const generations: string[] = [];
+  const ai = clientWithFetch(async (input, init) => {
+    const request = new Request(input, init);
+    if (request.method === 'GET') return jsonResponse({ models: [{ name: 'models/gemini-3.5-flash-lite', supportedGenerationMethods: ['generateContent'] }] });
+    generations.push(request.url);
+    return jsonResponse({ error: { code: 503, message: 'Overloaded' } }, 503);
+  });
+  const analyze = createMealAnalyzer(ai);
+  await assert.rejects(analyze(image), { status: 503 });
+  await assert.rejects(analyze(image), { status: 503 });
+  assert.equal(generations.length, 4);
+  assert.match(generations[2], /gemini-3\.8-flash:/);
+});
+
+test('no advertised alternative preserves the original overload error', async () => {
+  let calls = 0;
+  const ai = clientWithFetch(async (input, init) => {
+    calls++;
+    if (new Request(input, init).method === 'GET') return jsonResponse({ models: [{ name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] }] });
+    return jsonResponse({ error: { code: 503, message: 'Overloaded' } }, 503);
+  });
+  await assert.rejects(createMealAnalyzer(ai)(image), { status: 503 });
+  assert.equal(calls, 2);
+});
+
+test('credential, billing, quota and invalid request errors are not retried', async () => {
+  for (const status of [400, 401, 402, 403, 429]) {
+    let calls = 0;
+    const ai = clientWithFetch(async () => {
+      calls++;
+      return jsonResponse({ error: { code: status, message: 'Rejected' } }, status);
+    });
+    await assert.rejects(createMealAnalyzer(ai)(image), { status });
+    assert.equal(calls, 1);
+  }
+});
+
 async function withServer(app: ReturnType<typeof createApp>, run: (url: string) => Promise<void>) {
   const server: Server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');

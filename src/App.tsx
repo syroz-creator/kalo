@@ -73,7 +73,11 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('kalo-theme', theme); localStorage.setItem('kalo-reminders', String(reminders)); } catch { /* Preferences remain usable without storage. */ }
   }, [theme, reminders]);
-  useEffect(() => { void setNativeAppearance(theme).catch(() => {}); }, [theme]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#15120d' : '#f6f7f8');
+    void setNativeAppearance(theme).catch(() => {});
+  }, [theme]);
   useEffect(() => {
     if (!reminders) return;
     const timer = window.setInterval(() => {

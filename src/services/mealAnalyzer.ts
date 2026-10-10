@@ -36,9 +36,8 @@ export function createMealAnalyzer(ai: GoogleGenAI, configuredModel?: string) {
       signal?.throwIfAborted();
       if (entry.supportedActions?.includes('generateContent') && entry.name) available.add(entry.name.replace(/^models\//, ''));
     }
-    const selected = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
+    const selected = ['gemini-3.5-flash-lite', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite']
       .find(name => name !== model && available.has(name));
-    if (!selected) throw new Error('No compatible meal-scanning model is available for this API key.');
     return selected;
   };
 
@@ -59,11 +58,13 @@ export function createMealAnalyzer(ai: GoogleGenAI, configuredModel?: string) {
     catch (error) {
       signal?.throwIfAborted();
       const status = typeof error === 'object' && error !== null && 'status' in error ? error.status : undefined;
-      if (status !== 404 || configuredModel?.trim()) throw error;
+      if (![404, 500, 502, 503, 504].includes(Number(status)) || configuredModel?.trim()) throw error;
       const fallbackModel = await resolveFallback(signal);
       signal?.throwIfAborted();
+      if (!fallbackModel) throw error;
+      response = await generate(fallbackModel);
+      signal?.throwIfAborted();
       model = fallbackModel;
-      response = await generate(model);
     }
 
     signal?.throwIfAborted();
