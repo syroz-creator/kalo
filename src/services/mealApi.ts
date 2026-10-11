@@ -2,6 +2,8 @@ import { ApiError, GoogleGenAI } from '@google/genai';
 import { createMealAnalyzer } from './mealAnalyzer';
 import { prepareMealImage } from './mealImage';
 import { withRequestDeadline } from './requestDeadline';
+import { getMealDescription } from '../utils/mealAnalysis';
+import { UserFacingError } from '../utils/userFacingError';
 
 const storageKey = 'kalo-gemini-api-key';
 export const scanTimeoutMs = 45000;
@@ -14,16 +16,16 @@ export function getGeminiKey() {
 
 export function saveGeminiKey(value: string) {
   const key = value.trim();
-  if (!key) throw new Error('Enter your Gemini API key.');
+  if (!key) throw new UserFacingError('Enter your Gemini API key.');
   try { localStorage.setItem(storageKey, key); }
-  catch { throw new Error('Could not save your API key on this device. Check that storage is available.'); }
+  catch { throw new UserFacingError('Your key could not be saved on this device. Check that your browser allows storage and try again.'); }
   connection = undefined;
   return key;
 }
 
 export function removeGeminiKey() {
   try { localStorage.removeItem(storageKey); }
-  catch { throw new Error('Could not remove your API key. Please try again.'); }
+  catch { throw new UserFacingError('Could not remove your API key. Please try again.'); }
   connection = undefined;
 }
 
@@ -31,27 +33,37 @@ function createClient(key: string) {
   return new GoogleGenAI({ apiKey: key, httpOptions: { timeout: scanTimeoutMs, retryOptions: { attempts: 1 } } });
 }
 
-function geminiError(error: unknown): Error {
+function geminiError(error: unknown, checkingKey = false): UserFacingError {
+  if (error instanceof UserFacingError) return error;
   const message = error instanceof Error ? error.message : '';
-  if (error instanceof Error && (error.name === 'TimeoutError' || /timeout|timed out/i.test(message))) return new Error('Gemini took too long to respond. Please try again or choose a smaller photo.');
+  const timeoutMessage = checkingKey
+    ? 'Checking your key took too long. Please try again in a moment.'
+    : 'Your meal estimate took too long. Please try again, or log your meal manually.';
+  if (error instanceof Error && (error.name === 'TimeoutError' || /timeout|timed out/i.test(message))) return new UserFacingError(timeoutMessage);
   if (error instanceof ApiError) {
     if (error.status === 401 || error.status === 403 || /API_KEY_INVALID|API key not valid|API_KEY_EXPIRED/i.test(message)) {
-      return new Error('Gemini rejected this API key. Update it in Settings > Gemini API key and check its permissions.');
+      return new UserFacingError('This key could not connect to Gemini. Check it in Settings > Gemini API key, or create a new key in Google AI Studio.');
     }
-    if (error.status === 429) return new Error('Your Gemini usage limit has been reached. Check your quota in Google AI Studio or try again later.');
-    if (error.status === 402) return new Error('Gemini requires billing or available credits for this API key. Check this project in Google AI Studio. (HTTP 402)');
-    if (error.status === 404) return new Error('No compatible meal-scanning model is available for this API key.');
-    if (error.status === 400) return new Error('Gemini could not process this request. Check your API key or try a JPEG or PNG meal photo.');
-    if (error.status === 503) return new Error('Gemini is busy right now. Please try again shortly. (HTTP 503)');
-    return new Error(`Gemini could not complete this scan. Please try again. (HTTP ${error.status})`);
+    if (error.status === 429) return new UserFacingError('You have reached your Gemini usage limit. Try again later, or check your plan in Google AI Studio.');
+    if (error.status === 402) return new UserFacingError('Gemini needs available credits to continue. Check billing in Google AI Studio, then try again.');
+    if (error.status === 404) return new UserFacingError('Meal estimates are not available with this key. Try another key in Settings > Gemini API key.');
+    if (error.status === 400) return new UserFacingError(checkingKey
+      ? 'We could not check this key. Paste the full key from Google AI Studio and try again.'
+      : 'Gemini could not estimate this meal. Try a clearer photo or describe what you ate.');
+    if ([408, 504].includes(error.status)) return new UserFacingError(timeoutMessage);
+    if ([500, 502, 503].includes(error.status)) return new UserFacingError(checkingKey
+      ? 'Gemini is busy right now. Try checking your key again in a moment.'
+      : 'Gemini is busy right now. Try again in a moment, or log your meal manually.');
   }
-  if (/^(The scan |This photo |Choose a meal photo|Use a JPEG|No food |No compatible meal-scanning model)/.test(message)) return new Error(message);
-  return new Error('Cannot connect to Gemini. Check your internet connection and try again.');
+  if (error instanceof TypeError && /fetch|network|load failed|connection/i.test(message)) return new UserFacingError('Cannot connect to Gemini. Check your internet connection and try again.');
+  return new UserFacingError(checkingKey
+    ? 'We could not check your key right now. Please try again in a moment.'
+    : 'We could not finish your meal estimate. Please try again, or log your meal manually.');
 }
 
 export async function checkGeminiKey(value: string, signal?: AbortSignal) {
   const key = value.trim();
-  if (!key) throw new Error('Enter your Gemini API key.');
+  if (!key) throw new UserFacingError('Enter your Gemini API key.');
   signal?.throwIfAborted();
   try {
     await withRequestDeadline(async requestSignal => {
@@ -60,29 +72,39 @@ export async function checkGeminiKey(value: string, signal?: AbortSignal) {
         requestSignal.throwIfAborted();
         if (model.supportedActions?.includes('generateContent')) return;
       }
-      throw new Error('No compatible meal-scanning model is available for this API key.');
+      throw new UserFacingError('Meal estimates are not available with this key. Try another key in Settings > Gemini API key.');
     }, 15000, signal);
   } catch (error) {
     if (signal?.aborted) throw error;
-    throw geminiError(error);
+    throw geminiError(error, true);
   }
 }
 
-export async function analyzeMealPhoto(imageUrl: string, signal?: AbortSignal) {
+async function analyzeMealInput(input: { imageUrl: string; portionDetails?: string } | { description: string }, signal?: AbortSignal) {
   signal?.throwIfAborted();
   const key = getGeminiKey();
-  if (!key) throw new Error('Add your Gemini API key in Settings > Gemini API key before scanning a meal.');
+  if (!key) throw new UserFacingError('Add your Gemini API key in Settings > Gemini API key before estimating a meal.');
   if (connection?.key !== key) connection = { key, analyze: createMealAnalyzer(createClient(key)) };
   const activeConnection = connection;
   try {
     return await withRequestDeadline(async requestSignal => {
-      const image = await prepareMealImage(imageUrl, requestSignal);
+      const image = 'imageUrl' in input ? await prepareMealImage(input.imageUrl, requestSignal) : undefined;
       requestSignal.throwIfAborted();
-      return activeConnection.analyze(image, undefined, requestSignal);
+      return activeConnection.analyze(image, 'description' in input ? input.description : input.portionDetails, requestSignal);
     }, scanTimeoutMs, signal);
   }
   catch (error) {
     if (signal?.aborted) throw error;
     throw geminiError(error);
   }
+}
+
+export async function analyzeMealPhoto(imageUrl: string, signal?: AbortSignal, portionDetails = '') {
+  signal?.throwIfAborted();
+  return analyzeMealInput({ imageUrl, portionDetails: portionDetails.trim() ? getMealDescription(portionDetails) : undefined }, signal);
+}
+
+export async function analyzeMealDescription(description: string, signal?: AbortSignal) {
+  signal?.throwIfAborted();
+  return analyzeMealInput({ description: getMealDescription(description) }, signal);
 }

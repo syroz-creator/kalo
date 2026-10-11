@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertCircle, Camera, Check, Loader2, RefreshCw, Upload, X } from 'lucide-react';
+import { AlertCircle, Camera, Check, Loader2, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
 import type { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
 import { analyzeMealPhoto } from '../services/mealApi';
 import { captureMealPhoto, isNativeApp } from '../services/native';
+import { getUserErrorMessage } from '../utils/userFacingError';
 
 interface AiMealScannerProps {
   targetMeal: MealType;
@@ -12,34 +13,40 @@ interface AiMealScannerProps {
   onClose?: () => void;
   isModal?: boolean;
   onNativeCameraPendingChange?: (pending: boolean) => void;
+  onDescribeMeal?: () => void;
 }
 const fields = ['calories', 'protein', 'carbs', 'fat'] as const;
 
-export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, onLogMealResult, onClose, onNativeCameraPendingChange }: AiMealScannerProps) {
+export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, onLogMealResult, onClose, onNativeCameraPendingChange, onDescribeMeal }: AiMealScannerProps) {
   const [meal, setMeal] = useState(targetMeal);
   const [photo, setPhoto] = useState<string | null>(initialImage ?? null);
   const [result, setResult] = useState<MealAnalysisResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
+  const errorMessage = useRef<HTMLDivElement>(null);
+  const [portionDetails, setPortionDetails] = useState('');
+  const [resultDetails, setResultDetails] = useState('');
   const [name, setName] = useState('');
   const [nutrition, setNutrition] = useState({ calories: '', protein: '', carbs: '', fat: '' });
   const camera = useRef<HTMLInputElement>(null);
   const library = useRef<HTMLInputElement>(null);
+  const portionInput = useRef<HTMLTextAreaElement>(null);
   const request = useRef<AbortController | null>(null);
-  const analyze = useCallback(async (imageUrl: string) => {
+  const analyze = useCallback(async (imageUrl: string, details = '') => {
     request.current?.abort();
     const controller = new AbortController(); request.current = controller;
-    setPhoto(imageUrl); setAnalyzing(true); setError(''); setResult(null);
+    setPhoto(imageUrl); setPortionDetails(details); setAnalyzing(true); setError(''); setResult(null);
     try {
-      const data = await analyzeMealPhoto(imageUrl, controller.signal);
+      const data = await analyzeMealPhoto(imageUrl, controller.signal, details);
       if (controller.signal.aborted) return;
-      setResult(data); setName(data.dishName);
+      setResult(data); setResultDetails(details.trim()); setName(data.dishName);
       setNutrition({ calories: String(data.totalCalories), protein: String(data.totalProtein), carbs: String(data.totalCarbs), fat: String(data.totalFat) });
     } catch (failure) {
-      if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Could not analyze this meal. Please try again.');
+      if (!controller.signal.aborted) setError(getUserErrorMessage(failure, 'We could not estimate this meal. Please try again, or log it manually.'));
     } finally { if (!controller.signal.aborted) setAnalyzing(false); }
   }, []);
   useEffect(() => { setMeal(targetMeal); }, [targetMeal]);
+  useEffect(() => { if (error) errorMessage.current?.scrollIntoView({ block: 'nearest' }); }, [error]);
   useEffect(() => {
     const input = camera.current;
     const cancel = () => onNativeCameraPendingChange?.(false);
@@ -65,14 +72,14 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     try {
       const image = await captureMealPhoto();
       if (image) void analyze(image);
-    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not open the camera.'); }
+    } catch (failure) { setError(getUserErrorMessage(failure, 'We could not open the camera. Please try again, or choose a photo from your library.')); }
     finally { onNativeCameraPendingChange?.(false); }
   };
   const cancelScan = () => {
     request.current?.abort();
     setAnalyzing(false); setError('Scan cancelled.');
   };
-  const valid = !!name.trim() && fields.every(field => nutrition[field].trim() !== '' && Number.isFinite(Number(nutrition[field])) && Number(nutrition[field]) >= 0);
+  const valid = portionDetails.trim() === resultDetails && !!name.trim() && fields.every(field => nutrition[field].trim() !== '' && Number.isFinite(Number(nutrition[field])) && Number(nutrition[field]) >= 0);
   const log = () => {
     if (!result || !valid) return;
     const values = { calories: Number(nutrition.calories), protein: Number(nutrition.protein), carbs: Number(nutrition.carbs), fat: Number(nutrition.fat) };
@@ -87,12 +94,16 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     <input ref={library} type="file" accept="image/*" onChange={readPhoto} aria-label="Choose meal photo" hidden />
     {photo && <div className="meal-scan__photo"><img src={photo} alt="Meal preview" />{!analyzing && <button type="button" onClick={takePhoto}><RefreshCw size={15} />Retake</button>}</div>}
     {analyzing && <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>Scanning your meal...</span><button type="button" className="icon-command" aria-label="Cancel scan" title="Cancel scan" onClick={cancelScan}><X size={20} /></button></div>}
-    {error && <div className="meal-scan__error" role="alert"><AlertCircle size={20} /><div><strong>Could not analyze photo</strong><p>{error}</p>{photo && <button type="button" onClick={() => void analyze(photo)}>Try again</button>}</div></div>}
+    {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><div><strong>Could not analyze photo</strong><p>{error}</p><div className="meal-scan__recovery">{photo && <button type="button" onClick={() => void analyze(photo, portionDetails)}>Try again</button>}{onDescribeMeal && <button type="button" onClick={onDescribeMeal}>Describe instead</button>}</div></div></div>}
     {!photo && <div className="meal-scan__empty"><button type="button" className="primary-command" onClick={takePhoto}><Camera size={19} />Take a photo</button><button type="button" className="text-back" onClick={() => library.current?.click()}><Upload size={18} />Photo library</button></div>}
     {result && <div className="meal-scan__result">
       <h2>{name || 'Your meal'}</h2><p className="detail-calories"><strong>{Math.round(Number(nutrition.calories) || 0)}</strong> kcal</p>
       <fieldset className="meal-segments"><legend>Meal type</legend><div>{(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(value => <button type="button" key={value} aria-pressed={meal === value} className={meal === value ? 'is-selected' : ''} onClick={() => { setMeal(value); onChangeTargetMeal?.(value); }}>{value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div></fieldset>
       <h3>Ingredients</h3><ul className="recipe-ingredients">{result.items.map((food, index) => <li key={index}><span><strong>{food.name}</strong><small>{food.portion}</small></span><span>{Math.round(food.calories)} kcal</span></li>)}</ul>
+      {result.notes && <p className="settings-note">{result.notes}</p>}
+      {result.referenceTip && <p className="settings-note">{result.referenceTip}</p>}
+      <div className="app-field"><label htmlFor="photo-portion-details">Portion or label details (optional)</label><textarea id="photo-portion-details" ref={portionInput} rows={2} maxLength={2000} value={portionDetails} placeholder="e.g. 2 biscuits, 25 g total; label: 124 kcal per packet" onChange={event => setPortionDetails(event.target.value)} /></div>
+      <button type="button" className="text-back" disabled={portionDetails.trim() === resultDetails} onClick={() => { if (photo) { portionInput.current?.blur(); void analyze(photo, portionDetails); } }}><Sparkles size={18} />Update estimate</button>
       <label className="app-field">Meal name<input value={name} onChange={event => setName(event.target.value)} /></label>
       <div className="manual-nutrients">{fields.map(field => <label key={field} className="app-field">{field.charAt(0).toUpperCase() + field.slice(1)} ({field === 'calories' ? 'kcal' : 'g'})<input type="number" inputMode="decimal" min={0} step={field === 'calories' ? 1 : 0.1} value={nutrition[field]} onChange={event => setNutrition({ ...nutrition, [field]: event.target.value })} /></label>)}</div>
       <p className="settings-note">Estimated nutrition</p><button type="button" className="primary-command" disabled={!valid} onClick={log}><Check size={18} />Log {Math.round(Number(nutrition.calories) || 0)} kcal to {meal.charAt(0).toUpperCase() + meal.slice(1)}</button>

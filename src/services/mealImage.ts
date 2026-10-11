@@ -1,4 +1,5 @@
 import { getMealImage } from '../utils/mealAnalysis';
+import { UserFacingError } from '../utils/userFacingError';
 
 export async function prepareMealImage(imageUrl: string, signal: AbortSignal) {
   signal.throwIfAborted();
@@ -13,7 +14,7 @@ export async function prepareMealImage(imageUrl: string, signal: AbortSignal) {
     };
     const cancel = () => { cleanup(); element.src = ''; reject(signal.reason); };
     element.onload = () => { cleanup(); resolve(element); };
-    element.onerror = () => { cleanup(); reject(new Error('This photo could not be opened. Try a JPEG or PNG photo.')); };
+    element.onerror = () => { cleanup(); reject(new UserFacingError('This photo could not be opened. Try a JPEG or PNG photo.')); };
     signal.addEventListener('abort', cancel, { once: true });
     element.src = `data:${image.mimeType};base64,${image.data}`;
   });
@@ -23,7 +24,7 @@ export async function prepareMealImage(imageUrl: string, signal: AbortSignal) {
   canvas.width = Math.max(1, Math.round(photo.naturalWidth * scale));
   canvas.height = Math.max(1, Math.round(photo.naturalHeight * scale));
   const context = canvas.getContext('2d');
-  if (!context) throw new Error('This photo could not be prepared. Please try another photo.');
+  if (!context) throw new UserFacingError('This photo could not be prepared. Please try another photo.');
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.drawImage(photo, 0, 0, canvas.width, canvas.height);

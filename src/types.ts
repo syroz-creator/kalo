@@ -1,6 +1,6 @@
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 
-export type FoodSource = 'verified' | 'openfoodfacts' | 'custom' | 'ai_camera';
+export type FoodSource = 'verified' | 'openfoodfacts' | 'custom' | 'ai_camera' | 'ai_text';
 
 export interface FoodItem {
   id: string;

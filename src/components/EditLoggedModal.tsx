@@ -50,7 +50,7 @@ export function EditLoggedModal({ isOpen, item, onClose, onUpdate, onDelete }: P
         })}</div>}
         <label className="app-field">Meal name<input required value={name} onChange={event => setName(event.target.value)} /></label>
         {!hasIngredients && <div className="manual-nutrients">{keys.map(key => <label className="app-field" key={key}>{key.charAt(0).toUpperCase() + key.slice(1)} ({key === 'calories' ? 'kcal' : 'g'})<input type="number" min={0} required step={key === 'calories' ? 1 : 0.1} value={nutrition[key]} onChange={event => setNutrition({ ...nutrition, [key]: event.target.value })} /></label>)}</div>}
-        {item.source === 'ai_camera' && <p className="settings-note">Estimated nutrition</p>}
+        {(item.source === 'ai_camera' || item.source === 'ai_text') && <p className="settings-note">Estimated nutrition</p>}
       </div>
     </div>
     <footer className="detail-footer"><button type="submit" disabled={!valid} className="primary-command"><Check size={18} />Save changes</button><button type="button" className="delete-command" onClick={() => { onDelete(item.id); onClose(); }}><Trash2 size={17} />Delete meal</button></footer>

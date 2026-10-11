@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronLeft, Eye, EyeOff, Loader2, Trash2 } from 'lucide-react';
 import { checkGeminiKey, getGeminiKey, removeGeminiKey, saveGeminiKey } from '../services/mealApi';
+import { getUserErrorMessage } from '../utils/userFacingError';
 
 export function GeminiKeySettings({ onBack }: { onBack: () => void }) {
   const [key, setKey] = useState(getGeminiKey);
@@ -9,8 +10,10 @@ export function GeminiKeySettings({ onBack }: { onBack: () => void }) {
   const [checking, setChecking] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
+  const errorMessage = useRef<HTMLParagraphElement>(null);
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
+  useEffect(() => { if (error) errorMessage.current?.scrollIntoView({ block: 'nearest' }); }, [error]);
 
   const connect = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -23,7 +26,7 @@ export function GeminiKeySettings({ onBack }: { onBack: () => void }) {
       setKey(saveGeminiKey(key)); setSaved(true); setVisible(false);
       setStatus('Key saved. Gemini access confirmed.');
     } catch (failure) {
-      if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Could not check your API key.');
+      if (!controller.signal.aborted) setError(getUserErrorMessage(failure, 'We could not check your key right now. Please try again.'));
     } finally { if (!controller.signal.aborted) setChecking(false); }
   };
 
@@ -32,7 +35,7 @@ export function GeminiKeySettings({ onBack }: { onBack: () => void }) {
     try {
       removeGeminiKey(); setKey(''); setSaved(false); setVisible(false);
       setStatus('API key removed from this device.');
-    } catch (failure) { setError(failure instanceof Error ? failure.message : 'Could not remove your API key.'); }
+    } catch (failure) { setError(getUserErrorMessage(failure, 'Could not remove your API key. Please try again.')); }
   };
 
   return <div className="app-scroll settings-page">
@@ -48,7 +51,7 @@ export function GeminiKeySettings({ onBack }: { onBack: () => void }) {
     </form>
     {saved && <button type="button" className="text-back" disabled={checking} onClick={remove}><Trash2 size={18} />Remove saved key</button>}
     {status && <p role="status" className="settings-note">{status}</p>}
-    {error && <p role="alert" className="settings-note">{error}</p>}
+    {error && <p ref={errorMessage} role="alert" className="settings-note">{error}</p>}
     <a className="text-back" href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">Google AI Studio</a>
   </div>;
 }

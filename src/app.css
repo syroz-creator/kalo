@@ -134,7 +134,13 @@
 .ingredient-stepper button { border: 1px solid var(--border); width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: var(--gold); }
 .ingredient-stepper > span { min-width: 36px; text-align: center; font-size: 13px; }.ingredient-stepper small { font-size: 9px; margin: 0; }
 .app-field { display: flex; flex-direction: column; gap: 8px; font-size: 11px; color: var(--muted); margin: 18px 0; }
-.app-field input, .app-field select { color: var(--text); min-width: 0; width: 100%; background: var(--surface); border: 1px solid var(--border); padding: 12px; border-radius: 10px; font-size: 14px; }
+.app-field input, .app-field select, .app-field textarea { color: var(--text); min-width: 0; width: 100%; background: var(--surface); border: 1px solid var(--border); padding: 12px; border-radius: 10px; font-size: 14px; }
+.app-field textarea { min-height: 112px; resize: vertical; line-height: 1.5; }
+.manual-page .app-field select { height: 46px; min-height: 46px; }
+.meal-input-modes > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.meal-estimate { margin-top: 24px; }.meal-estimate h2 { font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+.manual-page .meal-scan__error { margin: 18px 0; }
+.meal-scan__recovery { display: flex; flex-wrap: wrap; gap: 16px; }
 .manual-nutrients { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
 .manual-page .detail-scroll { padding: 12px 20px; }.manual-page h1 { margin: 10px 0 28px; }
 .detail-footer { flex-shrink: 0; padding: 12px 20px max(18px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }

@@ -1,14 +1,22 @@
 import type { AnalyzedFoodItem, MealAnalysisResult } from '../types';
+import { UserFacingError } from './userFacingError';
+
+export function getMealDescription(value: string) {
+  const description = value.trim();
+  if (!description) throw new UserFacingError('Describe your meal first.');
+  if (description.length > 2000) throw new UserFacingError('Keep your meal description under 2,000 characters.');
+  return description;
+}
 
 export function getMealImage(image: unknown, fallbackMime: unknown = 'image/jpeg') {
-  if (typeof image !== 'string' || !image.trim()) throw new Error('Choose a meal photo first.');
+  if (typeof image !== 'string' || !image.trim()) throw new UserFacingError('Choose a meal photo first.');
   const dataUrl = image.match(/^data:([^;,]+);base64,([\s\S]+)$/);
   const mimeType = dataUrl?.[1] ?? fallbackMime;
   const data = (dataUrl?.[2] ?? image).replace(/\s/g, '');
   if (typeof mimeType !== 'string' || !['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(mimeType)) {
-    throw new Error('Use a JPEG, PNG, WebP, HEIC, or HEIF photo.');
+    throw new UserFacingError('Use a JPEG, PNG, WebP, HEIC, or HEIF photo.');
   }
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data)) throw new Error('This photo could not be read. Please select it again.');
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data)) throw new UserFacingError('This photo could not be read. Please select it again.');
   return { mimeType, data };
 }
 
@@ -18,19 +26,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function nutrient(value: unknown): number {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
-    throw new Error('The scan returned incomplete nutrition values. Please try again.');
+    throw new UserFacingError('We could not estimate the nutrition for this meal. Please try again.');
   }
   return value;
 }
 
 export function normalizeMealAnalysis(value: unknown): MealAnalysisResult {
   if (!isRecord(value) || typeof value.dishName !== 'string' || !value.dishName.trim() || !Array.isArray(value.items)) {
-    throw new Error('The scan returned an incomplete result. Please try again.');
+    throw new UserFacingError('We could not estimate this meal. Please try again.');
   }
-  if (!value.items.length) throw new Error('No food was identified. Try a clear photo of your meal.');
+  if (!value.items.length) throw new UserFacingError('No food was identified. Try a clear photo or describe the foods and portions in your meal.');
   const items: AnalyzedFoodItem[] = value.items.map(item => {
     if (!isRecord(item) || typeof item.name !== 'string' || !item.name.trim() || typeof item.portion !== 'string') {
-      throw new Error('The scan returned incomplete food details. Please try again.');
+      throw new UserFacingError('We could not identify all the foods. Try a clearer photo or describe what you ate.');
     }
     return {
       name: item.name.trim(), portion: item.portion,

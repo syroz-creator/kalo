@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { GoogleGenAI } from '@google/genai';
 import { createMealAnalyzer } from './server/mealAnalysis';
 import { getMealImage } from './src/utils/mealAnalysis';
+import { getUserErrorMessage } from './src/utils/userFacingError';
 
 dotenv.config();
 
@@ -29,10 +30,10 @@ export function createApp(options: { apiKey?: string; model?: string; client?: G
     try {
       image = getMealImage(req.body?.imageBase64, req.body?.mimeType);
     } catch (error) {
-      return res.status(400).json({ success: false, error: (error as Error).message });
+      return res.status(400).json({ success: false, error: getUserErrorMessage(error, 'This photo could not be read. Please select it again.') });
     }
     if (!analyzeMeal) {
-      return res.status(503).json({ success: false, error: 'Meal scanning is not configured. Add GEMINI_API_KEY to the server environment and restart the service.' });
+      return res.status(503).json({ success: false, error: 'Meal scanning is not ready yet. Please contact the app owner, or log your meal manually.' });
     }
 
     try {
@@ -44,10 +45,10 @@ export function createApp(options: { apiKey?: string; model?: string; client?: G
       const message = error instanceof Error ? error.message : '';
       console.error('Meal analysis failed', { status: status || 502 });
       if (status === 401 || status === 403 || /API_KEY_INVALID|API key not valid/i.test(message)) {
-        return res.status(503).json({ success: false, error: 'Meal scanning is not authorized. Check the Gemini API key in the server environment.' });
+        return res.status(503).json({ success: false, error: 'Meal scanning could not connect to Gemini. Please ask the app owner to check the API key.' });
       }
       if (status === 404) {
-        return res.status(503).json({ success: false, error: 'The meal-scanning model is unavailable for this API key. Check GEMINI_MODEL in the server environment.' });
+        return res.status(503).json({ success: false, error: 'Meal scanning is unavailable right now. Please contact the app owner, or log your meal manually.' });
       }
       if (status === 429) {
         return res.status(429).json({ success: false, error: 'Meal scanning has reached its usage limit. Please try again later.' });
@@ -55,7 +56,7 @@ export function createApp(options: { apiKey?: string; model?: string; client?: G
       if (status === 400) {
         return res.status(422).json({ success: false, error: 'This photo could not be analyzed. Try a JPEG or PNG photo of your meal.' });
       }
-      return res.status(502).json({ success: false, error: status ? 'Meal scanning is temporarily unavailable. Please try again.' : message || 'Could not analyze this meal. Please try again.' });
+      return res.status(502).json({ success: false, error: getUserErrorMessage(error, 'We could not finish your meal estimate. Please try again, or log your meal manually.') });
     }
   });
 

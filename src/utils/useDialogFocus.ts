@@ -8,7 +8,7 @@ export function useDialogFocus(open: boolean, onClose: () => void) {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
     const element = ref.current;
-    const controls = () => Array.from(element?.querySelectorAll<HTMLElement>('button:not(:disabled), input, select, [tabindex="0"]') ?? []);
+    const controls = () => Array.from(element?.querySelectorAll<HTMLElement>('button:not(:disabled), input, select, textarea, [tabindex="0"]') ?? []);
     controls()[0]?.focus({ preventScroll: true });
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); close.current(); }
