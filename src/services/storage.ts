@@ -1,5 +1,7 @@
 import { FoodItem, LoggedItem, RecipeItem, UserProfile, WorkoutItem } from '../types';
 import { collectPhotoRecipes } from '../utils/photoRecipes';
+import { mealForStorage, queueMealPhotos } from './mealPhotoStore';
+import { UserFacingError } from '../utils/userFacingError';
 
 const PHOTO_RECIPES_KEY = 'kalo_photo_recipes_v1';
 
@@ -15,8 +17,11 @@ export function loadPhotoRecipes(history: LoggedItem[]): LoggedItem[] {
 }
 
 export function savePhotoRecipes(recipes: LoggedItem[]): void {
-  try { localStorage.setItem(PHOTO_RECIPES_KEY, JSON.stringify(recipes)); }
-  catch (error) { console.error('Failed to save photo recipes', error); }
+  const previous = localStorage.getItem(PHOTO_RECIPES_KEY);
+  if (previous !== null && !parseMeals(previous)) throw new UserFacingError('Recipes could not be opened. Your existing data has not been replaced. Export a backup before clearing anything.');
+  queueMealPhotos(recipes);
+  try { const data = JSON.stringify(recipes.map(mealForStorage)); if (data !== previous) localStorage.setItem(PHOTO_RECIPES_KEY, data); }
+  catch { throw new UserFacingError('Your meals are saved, but Recipes could not be saved. Export your data before closing Kalo.'); }
 }
 
 const STORAGE_KEYS = {
@@ -168,27 +173,72 @@ export function saveUserProfile(profile: UserProfile): void {
   }
 }
 
-export function loadLoggedItems(): LoggedItem[] {
+const HISTORY_BACKUP = 'kalo_logged_items_backup_v1';
+const REMOVED_MEALS = 'kalo_removed_meals_v1';
+const UNREADABLE_HISTORY = 'kalo_unreadable_meals_v1';
+
+function parseMeals(raw: string | null): LoggedItem[] | null {
+  if (raw === null) return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.LOGGED_ITEMS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.error('Failed to load logged items', err);
-  }
-  return [];
+    const items: unknown = JSON.parse(raw);
+    if (Array.isArray(items) && items.every(item => item && typeof item.id === 'string' && typeof item.foodId === 'string' && typeof item.name === 'string' && typeof item.date === 'string' && ['calories', 'protein', 'carbs', 'fat', 'createdAt'].every(key => typeof item[key] === 'number' && Number.isFinite(item[key])))) return items;
+  } catch { /* Keep unreadable data intact so it can still be recovered. */ }
+  return null;
 }
 
-export function saveLoggedItems(items: LoggedItem[]): void {
+export function readLoggedHistory(): { items: LoggedItem[]; recovered: boolean } {
   try {
-    localStorage.setItem(STORAGE_KEYS.LOGGED_ITEMS, JSON.stringify(items));
-  } catch (err) {
-    console.error('Failed to save logged items', err);
+    const raw = localStorage.getItem(STORAGE_KEYS.LOGGED_ITEMS);
+    const primary = parseMeals(raw);
+    if (primary) return { items: primary, recovered: false };
+    const backupRaw = localStorage.getItem(HISTORY_BACKUP);
+    const backup = parseMeals(backupRaw);
+    if (backup) return { items: backup, recovered: true };
+    if (raw === null && backupRaw === null) return { items: [], recovered: false };
+  } catch { throw new UserFacingError('Kalo cannot read your saved meals right now. Your existing data has not been replaced. Reopen the app and try again.'); }
+  throw new UserFacingError('Your saved meals could not be opened. Your existing data has not been replaced. Export your data before clearing anything.');
+}
+
+export function loadLoggedItems(): LoggedItem[] { return readLoggedHistory().items; }
+
+export function saveLoggedItems(items: LoggedItem[]): void {
+  const previous = loadLoggedItems();
+  const data = JSON.stringify(items.map(mealForStorage));
+  try {
+    const original = localStorage.getItem(STORAGE_KEYS.LOGGED_ITEMS);
+    if (original !== null && !parseMeals(original)) localStorage.setItem(UNREADABLE_HISTORY, original);
+    localStorage.setItem(STORAGE_KEYS.LOGGED_ITEMS, data);
   }
+  catch { throw new UserFacingError('This change was not saved. Your previous meals are safe. Free some device storage or export your data, then try again.'); }
+  queueMealPhotos(items);
+  // The primary write must succeed before rotating the fallback or recording removals.
+  try { localStorage.setItem(HISTORY_BACKUP, JSON.stringify(previous.map(mealForStorage))); } catch { /* The primary copy is already safely saved. */ }
+  const remaining = new Set(items.map(item => item.id));
+  const removed = previous.filter(item => !remaining.has(item.id));
+  if (removed.length) {
+    try {
+      const old = parseMeals(localStorage.getItem(REMOVED_MEALS)) || [];
+      const unique = new Map([...old, ...removed].map(item => [item.id, mealForStorage(item)]));
+      localStorage.setItem(REMOVED_MEALS, JSON.stringify([...unique.values()].slice(-1000)));
+    } catch { /* A recovery copy must not undo a successful primary save. */ }
+  }
+}
+
+export function loadRecoverableMeals(history: LoggedItem[]): LoggedItem[] {
+  try {
+    const active = new Set(history.map(item => item.id));
+    const candidates = [HISTORY_BACKUP, REMOVED_MEALS, PHOTO_RECIPES_KEY].flatMap(key => parseMeals(localStorage.getItem(key)) || []);
+    return [...new Map(candidates.filter(item => !active.has(item.id)).map(item => [item.id, item])).values()].sort((a, b) => b.createdAt - a.createdAt);
+  } catch { return []; }
+}
+
+export function exportSavedMealCopies() {
+  const copies: Record<string, string> = {};
+  for (const key of [STORAGE_KEYS.LOGGED_ITEMS, HISTORY_BACKUP, REMOVED_MEALS, UNREADABLE_HISTORY, PHOTO_RECIPES_KEY]) {
+    try { const raw = localStorage.getItem(key); if (raw !== null) copies[key] = raw; }
+    catch { /* Export every readable copy without including keys or credentials. */ }
+  }
+  return copies;
 }
 
 export function loadWorkouts(): WorkoutItem[] {

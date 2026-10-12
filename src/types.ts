@@ -24,6 +24,29 @@ export interface AnalyzedFoodItem {
   protein: number;
   carbs: number;
   fat: number;
+  portionQuantity?: number;
+  portionUnit?: 'g' | 'ml' | 'piece' | 'serving';
+  gramsPerPiece?: number;
+}
+
+export type Nutrition = Pick<AnalyzedFoodItem, 'calories' | 'protein' | 'carbs' | 'fat'>;
+export interface BarcodeProduct {
+  barcode: string;
+  name: string;
+  brand?: string;
+  imageUrl?: string;
+  unit: 'g' | 'ml';
+  nutritionPer100: Nutrition;
+  servingQuantity?: number;
+  servingLabel?: string;
+  pieceQuantity?: number;
+  pieceLabel?: string;
+}
+export interface ProductPortion {
+  product: BarcodeProduct;
+  amount: number;
+  mode: 'weight' | 'servings' | 'pieces';
+  pieceWeight?: number;
 }
 
 export interface MealAnalysisResult {
@@ -54,8 +77,10 @@ export interface LoggedItem {
   fat: number;
   source: FoodSource | 'ai_camera';
   imageUrl?: string;
+  photoId?: string;
   createdAt: number;
   ingredients?: AnalyzedFoodItem[];
+  productPortion?: ProductPortion;
 }
 
 export type WorkoutType = 'strength' | 'cardio' | 'walk' | 'hiit' | 'sport';

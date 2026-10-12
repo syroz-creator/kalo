@@ -4,12 +4,14 @@ import type { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
 import { analyzeMealPhoto } from '../services/mealApi';
 import { captureMealPhoto, isNativeApp } from '../services/native';
 import { getUserErrorMessage } from '../utils/userFacingError';
+import { MealPortionEditor } from './MealPortionEditor';
+import { totalFoodNutrition } from '../utils/mealPortions';
 
 interface AiMealScannerProps {
   targetMeal: MealType;
   initialImage?: string | null;
   onChangeTargetMeal?: (meal: MealType) => void;
-  onLogMealResult: (result: { meal: MealType; dishName: string; totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; portionDescription: string; imageUrl?: string; ingredients?: AnalyzedFoodItem[] }) => void;
+  onLogMealResult: (result: { meal: MealType; dishName: string; totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; portionDescription: string; imageUrl?: string; ingredients?: AnalyzedFoodItem[] }) => Promise<boolean>;
   onClose?: () => void;
   isModal?: boolean;
   onNativeCameraPendingChange?: (pending: boolean) => void;
@@ -21,6 +23,8 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
   const [meal, setMeal] = useState(targetMeal);
   const [photo, setPhoto] = useState<string | null>(initialImage ?? null);
   const [result, setResult] = useState<MealAnalysisResult | null>(null);
+  const [editedItems, setEditedItems] = useState<AnalyzedFoodItem[]>([]);
+  const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const errorMessage = useRef<HTMLDivElement>(null);
@@ -39,7 +43,7 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     try {
       const data = await analyzeMealPhoto(imageUrl, controller.signal, details);
       if (controller.signal.aborted) return;
-      setResult(data); setResultDetails(details.trim()); setName(data.dishName);
+      setResult(data); setEditedItems(data.items); setResultDetails(details.trim()); setName(data.dishName);
       setNutrition({ calories: String(data.totalCalories), protein: String(data.totalProtein), carbs: String(data.totalCarbs), fat: String(data.totalFat) });
     } catch (failure) {
       if (!controller.signal.aborted) setError(getUserErrorMessage(failure, 'We could not estimate this meal. Please try again, or log it manually.'));
@@ -79,15 +83,17 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     request.current?.abort();
     setAnalyzing(false); setError('Scan cancelled.');
   };
-  const valid = portionDetails.trim() === resultDetails && !!name.trim() && fields.every(field => nutrition[field].trim() !== '' && Number.isFinite(Number(nutrition[field])) && Number(nutrition[field]) >= 0);
-  const log = () => {
-    if (!result || !valid) return;
+  const valid = portionDetails.trim() === resultDetails && editedItems.some(item => item.portionQuantity !== 0) && !!name.trim() && fields.every(field => nutrition[field].trim() !== '' && Number.isFinite(Number(nutrition[field])) && Number(nutrition[field]) >= 0);
+  const log = async () => {
+    if (!result || !valid || saving) return;
     const values = { calories: Number(nutrition.calories), protein: Number(nutrition.protein), carbs: Number(nutrition.carbs), fat: Number(nutrition.fat) };
-    const bases = { calories: result.totalCalories, protein: result.totalProtein, carbs: result.totalCarbs, fat: result.totalFat };
+    const activeItems = editedItems.filter(item => item.portionQuantity !== 0);
+    const bases = totalFoodNutrition(activeItems);
     // Keep ingredient totals aligned with any corrections made before logging.
-    const ingredients = result.items.map(item => ({ ...item, ...Object.fromEntries(fields.map(field => [field, bases[field] > 0 ? item[field] * values[field] / bases[field] : values[field] / result.items.length])) }));
-    onLogMealResult({ meal, dishName: name.trim(), totalCalories: Math.round(values.calories), totalProtein: Math.round(values.protein * 10) / 10, totalCarbs: Math.round(values.carbs * 10) / 10, totalFat: Math.round(values.fat * 10) / 10, portionDescription: ingredients.map(item => `${item.name} (${item.portion})`).join(', '), imageUrl: photo ?? undefined, ingredients });
-    onClose?.();
+    const ingredients = activeItems.map(item => ({ ...item, ...Object.fromEntries(fields.map(field => [field, bases[field] > 0 ? item[field] * values[field] / bases[field] : values[field] / activeItems.length])) }));
+    setSaving(true);
+    try { if (await onLogMealResult({ meal, dishName: name.trim(), totalCalories: Math.round(values.calories), totalProtein: Math.round(values.protein * 10) / 10, totalCarbs: Math.round(values.carbs * 10) / 10, totalFat: Math.round(values.fat * 10) / 10, portionDescription: ingredients.map(item => `${item.name} (${item.portion})`).join(', '), imageUrl: photo ?? undefined, ingredients })) onClose?.(); }
+    finally { setSaving(false); }
   };
   return <div className="meal-scan">
     <input ref={camera} type="file" accept="image/*" capture="environment" onChange={readPhoto} aria-label="Retake meal photo" hidden />
@@ -99,14 +105,14 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     {result && <div className="meal-scan__result">
       <h2>{name || 'Your meal'}</h2><p className="detail-calories"><strong>{Math.round(Number(nutrition.calories) || 0)}</strong> kcal</p>
       <fieldset className="meal-segments"><legend>Meal type</legend><div>{(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(value => <button type="button" key={value} aria-pressed={meal === value} className={meal === value ? 'is-selected' : ''} onClick={() => { setMeal(value); onChangeTargetMeal?.(value); }}>{value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div></fieldset>
-      <h3>Ingredients</h3><ul className="recipe-ingredients">{result.items.map((food, index) => <li key={index}><span><strong>{food.name}</strong><small>{food.portion}</small></span><span>{Math.round(food.calories)} kcal</span></li>)}</ul>
+      <h3>Food portions</h3><MealPortionEditor items={result.items} onChange={items => { setEditedItems(items); const totals = totalFoodNutrition(items); setNutrition({ calories: String(totals.calories), protein: String(totals.protein), carbs: String(totals.carbs), fat: String(totals.fat) }); }} />
       {result.notes && <p className="settings-note">{result.notes}</p>}
       {result.referenceTip && <p className="settings-note">{result.referenceTip}</p>}
       <div className="app-field"><label htmlFor="photo-portion-details">Portion or label details (optional)</label><textarea id="photo-portion-details" ref={portionInput} rows={2} maxLength={2000} value={portionDetails} placeholder="e.g. 2 biscuits, 25 g total; label: 124 kcal per packet" onChange={event => setPortionDetails(event.target.value)} /></div>
       <button type="button" className="text-back" disabled={portionDetails.trim() === resultDetails} onClick={() => { if (photo) { portionInput.current?.blur(); void analyze(photo, portionDetails); } }}><Sparkles size={18} />Update estimate</button>
       <label className="app-field">Meal name<input value={name} onChange={event => setName(event.target.value)} /></label>
       <div className="manual-nutrients">{fields.map(field => <label key={field} className="app-field">{field.charAt(0).toUpperCase() + field.slice(1)} ({field === 'calories' ? 'kcal' : 'g'})<input type="number" inputMode="decimal" min={0} step={field === 'calories' ? 1 : 0.1} value={nutrition[field]} onChange={event => setNutrition({ ...nutrition, [field]: event.target.value })} /></label>)}</div>
-      <p className="settings-note">Estimated nutrition</p><button type="button" className="primary-command" disabled={!valid} onClick={log}><Check size={18} />Log {Math.round(Number(nutrition.calories) || 0)} kcal to {meal.charAt(0).toUpperCase() + meal.slice(1)}</button>
+      <p className="settings-note">Estimated nutrition</p><button type="button" className="primary-command" disabled={!valid || saving} onClick={() => void log()}>{saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{saving ? 'Saving...' : `Log ${Math.round(Number(nutrition.calories) || 0)} kcal to ${meal.charAt(0).toUpperCase() + meal.slice(1)}`}</button>
     </div>}
   </div>;
 }

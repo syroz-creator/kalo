@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Home, TrendingUp, Camera, BookOpen, UserRound, X } from 'lucide-react';
 import type { AnalyzedFoodItem, LoggedItem, MealType, UserProfile, WorkoutItem } from './types';
-import { loadLoggedItems, loadPhotoRecipes, loadUserProfile, loadWaterLogs, loadWorkouts, saveLoggedItems, savePhotoRecipes, saveUserProfile, saveWaterLogs, saveWorkouts } from './services/storage';
+import { exportSavedMealCopies, loadPhotoRecipes, loadRecoverableMeals, loadUserProfile, loadWaterLogs, loadWorkouts, savePhotoRecipes, saveUserProfile, saveWaterLogs, saveWorkouts } from './services/storage';
 import { calculateEnergyNeeds } from './utils/calculator';
 import { getTodayKey } from './utils/date';
 import { TodayTab } from './components/TodayTab';
@@ -16,6 +16,12 @@ import { OpeningSplash } from './components/OpeningSplash';
 import { captureMealPhoto, isNativeApp, setNativeAppearance } from './services/native';
 import './app.css';
 import { getUserErrorMessage } from './utils/userFacingError';
+import { BarcodeMealModal } from './components/BarcodeMealModal';
+import { GoalCelebration } from './components/GoalCelebration';
+import { crossesDailyTarget } from './utils/goalCelebration';
+import { playSound, setSoundEnabled, unlockSound } from './services/sounds';
+import { useMealHistory } from './utils/useMealHistory';
+import { archiveMealPhotos, hydrateMealPhotos } from './services/mealPhotoStore';
 
 type ActivePage = 'today' | 'progress' | 'recipes' | 'settings';
 function preference(key: string) { try { return localStorage.getItem(key); } catch { return null; } }
@@ -25,7 +31,7 @@ export default function App() {
   const [activePage, setActivePage] = useState<ActivePage>('today');
   const [selectedDate, setSelectedDate] = useState(getTodayKey);
   const [userProfile, setUserProfile] = useState<UserProfile>(loadUserProfile);
-  const [loggedItems, setLoggedItems] = useState<LoggedItem[]>(loadLoggedItems);
+  const { items: loggedItems, update: setLoggedItems, error: storageError, setError: setStorageError } = useMealHistory();
   const [workouts, setWorkouts] = useState<WorkoutItem[]>(loadWorkouts);
   const [recipes, setRecipes] = useState<LoggedItem[]>(() => loadPhotoRecipes(loggedItems));
   const [waterLogs, setWaterLogs] = useState<Record<string, number>>(loadWaterLogs);
@@ -36,6 +42,10 @@ export default function App() {
   const finishOpening = useCallback(() => setOpening(false), []);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => !userProfile.hasCompletedOnboarding);
   const [isAiSnapModalOpen, setIsAiSnapModalOpen] = useState(false);
+  const [barcodeMeal, setBarcodeMeal] = useState<MealType | null>(null);
+  const [sounds, setSounds] = useState(() => preference('kalo-sounds') !== 'false');
+  const [celebrating, setCelebrating] = useState(false);
+  const finishCelebration = useCallback(() => setCelebrating(false), []);
   const [manualMeal, setManualMeal] = useState<MealType | null>(null);
   const [manualMode, setManualMode] = useState<'manual' | 'describe'>('manual');
   const [targetMeal, setTargetMeal] = useState<MealType>('lunch');
@@ -44,7 +54,7 @@ export default function App() {
   const directCameraInputRef = useRef<HTMLInputElement>(null);
   const nativeCameraPending = useRef(false);
   const scanOpenRef = useRef(false);
-  scanOpenRef.current = isAiSnapModalOpen;
+  scanOpenRef.current = isAiSnapModalOpen || !!barcodeMeal;
   const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const showToast = (message: string, undo?: () => void) => {
@@ -53,6 +63,7 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), undo ? 6000 : 3000);
   };
   useEffect(() => () => clearTimeout(toastTimer.current), []);
+  useEffect(() => { setSoundEnabled(sounds); try { localStorage.setItem('kalo-sounds', String(sounds)); } catch { /* Sound preferences remain usable without storage. */ } }, [sounds]);
   useEffect(() => {
     const input = directCameraInputRef.current;
     const cancel = () => { nativeCameraPending.current = false; };
@@ -68,9 +79,22 @@ export default function App() {
     return () => { document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pageshow', pageshow); };
   }, []);
   useEffect(() => { saveUserProfile(userProfile); }, [userProfile]);
-  useEffect(() => { saveLoggedItems(loggedItems); }, [loggedItems]);
   useEffect(() => { saveWorkouts(workouts); }, [workouts]);
-  useEffect(() => { savePhotoRecipes(recipes); }, [recipes]);
+  useEffect(() => {
+    let cancelled = false;
+    void archiveMealPhotos(recipes).then(() => { if (!cancelled) savePhotoRecipes(loadPhotoRecipes(recipes)); })
+      .catch(() => { if (!cancelled) setStorageError('Your meal records are safe, but Recipes could not be saved. Export a backup before closing Kalo.'); });
+    void hydrateMealPhotos(recipes).then(items => { if (!cancelled && items !== recipes) setRecipes(items); })
+      .catch(() => { if (!cancelled) setStorageError('Some saved photos could not be opened. Your meal records have not been deleted.'); });
+    return () => { cancelled = true; };
+  }, [recipes, setStorageError]);
+  useEffect(() => {
+    const reloadRecipes = (event: StorageEvent) => { if (event.key === 'kalo_photo_recipes_v1' || event.key === null) setRecipes(loadPhotoRecipes(loggedItems)); };
+    const photosReady = () => setRecipes(loadPhotoRecipes(loggedItems));
+    window.addEventListener('storage', reloadRecipes);
+    window.addEventListener('kalo-photos-ready', photosReady);
+    return () => { window.removeEventListener('storage', reloadRecipes); window.removeEventListener('kalo-photos-ready', photosReady); };
+  }, [loggedItems]);
   useEffect(() => { saveWaterLogs(waterLogs); }, [waterLogs]);
   useEffect(() => {
     try { localStorage.setItem('kalo-theme', theme); localStorage.setItem('kalo-reminders', String(reminders)); } catch { /* Preferences remain usable without storage. */ }
@@ -89,20 +113,48 @@ export default function App() {
   }, [reminders]);
 
   const energyNeeds = calculateEnergyNeeds(userProfile);
-  const addMeal = (item: Omit<LoggedItem, 'id' | 'createdAt'>) => {
+  const updateRecipes = (change: (items: LoggedItem[]) => LoggedItem[]) => {
+    try { const next = change(loadPhotoRecipes(loggedItems)); savePhotoRecipes(next); setRecipes(next); }
+    catch (error) { setStorageError(getUserErrorMessage(error, 'Your meal records are saved, but Recipes could not be saved. Export your data before closing Kalo.')); }
+  };
+  const today = getTodayKey();
+  const todayTotal = loggedItems.filter(item => item.date === today).reduce((total, item) => total + item.calories, 0);
+  const previousGoal = useRef({ date: today, target: energyNeeds.tdee, total: todayTotal });
+  const celebratedDays = useRef<Set<string> | null>(null);
+  if (!celebratedDays.current) {
+    try { const saved: unknown = JSON.parse(preference('kalo-celebrated-days') || '[]'); celebratedDays.current = new Set(Array.isArray(saved) ? saved.filter(value => typeof value === 'string') : []); }
+    catch { celebratedDays.current = new Set(); }
+  }
+  useEffect(() => {
+    const current = { date: today, target: energyNeeds.tdee, total: todayTotal };
+    if (crossesDailyTarget(previousGoal.current, current, celebratedDays.current!.has(today))) {
+      celebratedDays.current!.add(today);
+      try { localStorage.setItem('kalo-celebrated-days', JSON.stringify([...celebratedDays.current!].sort().slice(-30))); } catch { /* Prevent repeated celebrations for this session even without storage. */ }
+      setCelebrating(true); playSound('goal');
+    }
+    previousGoal.current = current;
+  }, [today, todayTotal, energyNeeds.tdee]);
+  const addMeal = async (item: Omit<LoggedItem, 'id' | 'createdAt'>) => {
     const logged = { ...item, id: id(), createdAt: Date.now() };
-    setLoggedItems(items => [logged, ...items]);
+    try { await archiveMealPhotos([logged]); }
+    catch { setStorageError('This photo could not be saved. Your meal has not been logged yet. Try again or describe it instead.'); return null; }
+    if (!setLoggedItems(items => [logged, ...items])) return null;
     showToast('Meal logged'); setActivePage('today');
     return logged;
   };
   const deleteMeal = (itemId: string) => {
     const removed = loggedItems.find(item => item.id === itemId);
-    setLoggedItems(items => items.filter(item => item.id !== itemId));
-    showToast('Meal removed', removed ? () => setLoggedItems(items => items.some(item => item.id === removed.id) ? items : [...items, removed]) : undefined);
+    const position = loggedItems.findIndex(item => item.id === itemId);
+    if (!setLoggedItems(items => items.filter(item => item.id !== itemId))) return false;
+    if (editingItem?.id === itemId) setEditingItem(null);
+    playSound('delete');
+    showToast(removed ? `${removed.name} deleted` : 'Meal deleted', removed ? () => setLoggedItems(items => items.some(item => item.id === removed.id) ? items : [...items.slice(0, position), removed, ...items.slice(position)]) : undefined);
+    return true;
   };
   const repeatMeal = (item: LoggedItem) => {
     const repeated = { ...item, id: id(), date: selectedDate, createdAt: Date.now() };
-    setLoggedItems(items => [repeated, ...items]);
+    if (!setLoggedItems(items => [repeated, ...items])) return;
+    playSound('repeat');
     showToast('Meal logged again', () => setLoggedItems(items => items.filter(entry => entry.id !== repeated.id)));
   };
   const handlePhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,10 +179,12 @@ export default function App() {
     }
     directCameraInputRef.current?.click();
   };
-  const logScan = (result: { meal: MealType; dishName: string; totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; portionDescription: string; imageUrl?: string; ingredients?: AnalyzedFoodItem[] }) => {
-    const logged = addMeal({ foodId: `ai-${id()}`, date: selectedDate, meal: result.meal, name: result.dishName, quantity: 1, unit: result.portionDescription || 'portion', calories: result.totalCalories, protein: result.totalProtein, carbs: result.totalCarbs, fat: result.totalFat, source: 'ai_camera', imageUrl: result.imageUrl, ingredients: result.ingredients });
-    if (logged.imageUrl) setRecipes(items => [logged, ...items]);
+  const logScan = async (result: { meal: MealType; dishName: string; totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; portionDescription: string; imageUrl?: string; ingredients?: AnalyzedFoodItem[] }) => {
+    const logged = await addMeal({ foodId: `ai-${id()}`, date: selectedDate, meal: result.meal, name: result.dishName, quantity: 1, unit: result.portionDescription || 'portion', calories: result.totalCalories, protein: result.totalProtein, carbs: result.totalCarbs, fat: result.totalFat, source: 'ai_camera', imageUrl: result.imageUrl, ingredients: result.ingredients });
+    if (!logged) return false;
+    if (logged.imageUrl) updateRecipes(items => [logged, ...items.filter(item => item.foodId !== logged.foodId)]);
     setIsAiSnapModalOpen(false);
+    return true;
   };
   const logRecipe = (recipe: LoggedItem, meal: MealType) => addMeal({ ...recipe, date: selectedDate, meal });
   const openDescription = (meal: MealType) => {
@@ -138,30 +192,33 @@ export default function App() {
     setManualMode('describe'); setManualMeal(meal);
   };
   const exportData = () => {
-    const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: userProfile, meals: loggedItems, workouts, recipes, water: waterLogs }, null, 2)], { type: 'application/json' }));
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: userProfile, meals: loggedItems, workouts, recipes, water: waterLogs, savedMealCopies: exportSavedMealCopies() }, null, 2)], { type: 'application/json' }));
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `kalo-${getTodayKey()}.json`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const tabs = [{ key: 'today', label: 'Today', icon: Home }, { key: 'progress', label: 'Progress', icon: TrendingUp }, { key: 'recipes', label: 'Recipes', icon: BookOpen }, { key: 'settings', label: 'Settings', icon: UserRound }] as const;
-  const dialogOpen = !!manualMeal || !!editingItem || isAiSnapModalOpen || isOnboardingOpen;
-  return <div className="app-root"><div className="kalo-shell" data-theme={theme}>
+  const dialogOpen = !!manualMeal || !!editingItem || !!barcodeMeal || isAiSnapModalOpen || isOnboardingOpen;
+  return <div className="app-root" onPointerDownCapture={unlockSound} onPointerUpCapture={unlockSound} onClickCapture={unlockSound} onKeyDownCapture={unlockSound}><div className="kalo-shell" data-theme={theme}>
     <div className="app-surface" inert={opening || dialogOpen}>
       <main className="app-main">
-        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} cupsDrank={waterLogs[selectedDate] ?? 0} onUpdateWaterCups={cups => setWaterLogs(logs => ({ ...logs, [selectedDate]: Math.max(0, Math.min(10, cups)) }))} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onDescribeMeal={openDescription} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
+        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} cupsDrank={waterLogs[selectedDate] ?? 0} onUpdateWaterCups={cups => setWaterLogs(logs => ({ ...logs, [selectedDate]: Math.max(0, Math.min(10, cups)) }))} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onDescribeMeal={openDescription} onBarcodeMeal={setBarcodeMeal} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
         {activePage === 'progress' && <ProgressTab selectedDate={selectedDate} loggedItems={loggedItems} workouts={workouts} targetCalories={energyNeeds.tdee} onAddWorkout={workout => { setWorkouts(items => [{ ...workout, id: id(), createdAt: Date.now() }, ...items]); showToast('Workout logged'); }} onDeleteWorkout={itemId => setWorkouts(items => items.filter(item => item.id !== itemId))} />}
-        {activePage === 'recipes' && <RecipesTab recipes={recipes} onLogRecipeAsMeal={logRecipe} onRemoveRecipe={foodId => setRecipes(items => items.filter(item => item.foodId !== foodId))} onOpenCamera={openCamera} />}
-        {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { setLoggedItems([]); setWorkouts([]); showToast('History cleared'); }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} onExport={exportData} />}
+        {activePage === 'recipes' && <RecipesTab recipes={recipes} onLogRecipeAsMeal={logRecipe} onRemoveRecipe={foodId => updateRecipes(items => items.filter(item => item.foodId !== foodId))} onOpenCamera={openCamera} />}
+        {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { if (setLoggedItems(() => [])) { setWorkouts([]); showToast('History cleared'); } }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} sounds={sounds} onSoundsChange={setSounds} onExport={exportData} recoverableMeals={loadRecoverableMeals(loggedItems)} onRecoverMeal={item => { const saved = setLoggedItems(items => items.some(meal => meal.id === item.id) ? items : [item, ...items]); if (saved) showToast('Meal restored to its original day'); return saved; }} />}
       </main>
       <nav className="app-nav" aria-label="Main navigation">{tabs.map((tab, index) => <React.Fragment key={tab.key}>{index === 2 && <button type="button" className="center-camera" title="Photograph a meal" aria-label="Take picture of meal" onClick={openCamera}><Camera size={28} /></button>}<button type="button" aria-current={activePage === tab.key ? 'page' : undefined} onClick={() => setActivePage(tab.key)}><tab.icon size={24} strokeWidth={1.6} /><span>{tab.label}</span></button></React.Fragment>)}</nav>
     </div>
     {toast && <div className="app-toast" role="status"><span>{toast.message}</span>{toast.undo && <button type="button" onClick={() => { toast.undo?.(); setToast(null); }}>Undo</button>}</div>}
+    {storageError && <div className="storage-alert" role="alert"><p>{storageError}</p><button type="button" onClick={exportData}>Export data</button></div>}
     <div inert={opening} className="app-dialog-layer">
       <OnboardingModal isOpen={isOnboardingOpen} initialProfile={userProfile} onComplete={profile => { setUserProfile(profile); setIsOnboardingOpen(false); showToast('Your daily target is set.'); }} />
-      {manualMeal && <ManualMealModal meal={manualMeal} initialMode={manualMode} date={selectedDate} onClose={() => setManualMeal(null)} onLog={addMeal} />}
-      <EditLoggedModal isOpen={!!editingItem} item={editingItem} onClose={() => setEditingItem(null)} onUpdate={(itemId, updates) => { setLoggedItems(items => items.map(item => item.id === itemId ? { ...item, ...updates } : item)); setRecipes(items => items.map(item => item.foodId === editingItem?.foodId ? { ...item, ...updates } : item)); showToast('Meal updated'); }} onDelete={deleteMeal} />
+      {manualMeal && <ManualMealModal meal={manualMeal} initialMode={manualMode} date={selectedDate} onClose={() => setManualMeal(null)} onLog={async item => !!(await addMeal(item))} />}
+      {barcodeMeal && <BarcodeMealModal date={selectedDate} meal={barcodeMeal} onClose={() => setBarcodeMeal(null)} onLog={async item => !!(await addMeal(item))} onManual={() => { setManualMode('manual'); setManualMeal(barcodeMeal); setBarcodeMeal(null); }} />}
+      <EditLoggedModal isOpen={!!editingItem} item={editingItem} onClose={() => setEditingItem(null)} onUpdate={(itemId, updates) => { if (!setLoggedItems(items => items.map(item => item.id === itemId ? { ...item, ...updates } : item))) return false; updateRecipes(items => items.map(item => item.foodId === editingItem?.foodId ? { ...item, ...updates } : item)); showToast('Meal updated'); return true; }} onDelete={deleteMeal} />
       {isAiSnapModalOpen && <section className="scanner-dialog" role="dialog" aria-modal="true" aria-label="Meal photo"><header><h2>Meal photo</h2><button type="button" className="icon-command" aria-label="Close meal photo" onClick={() => setIsAiSnapModalOpen(false)}><X size={22} /></button></header><div className="scanner-scroll"><AiMealScanner targetMeal={targetMeal} initialImage={snappedInitialImage} onChangeTargetMeal={setTargetMeal} onLogMealResult={logScan} onClose={() => setIsAiSnapModalOpen(false)} onNativeCameraPendingChange={pending => { nativeCameraPending.current = pending; }} onDescribeMeal={() => openDescription(targetMeal)} isModal /></div></section>}
     </div>
     <input ref={directCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} aria-label="Photograph meal" hidden />
     {opening && <OpeningSplash key={openingKey} onComplete={finishOpening} />}
+    {celebrating && <GoalCelebration onClose={finishCelebration} />}
   </div></div>;
 }

@@ -44,6 +44,8 @@ export function normalizeMealAnalysis(value: unknown): MealAnalysisResult {
       name: item.name.trim(), portion: item.portion,
       calories: nutrient(item.calories), protein: nutrient(item.protein),
       carbs: nutrient(item.carbs), fat: nutrient(item.fat),
+      ...(typeof item.portionQuantity === 'number' && Number.isFinite(item.portionQuantity) && item.portionQuantity > 0 && ['g', 'ml', 'piece', 'serving'].includes(String(item.portionUnit)) ? { portionQuantity: item.portionQuantity, portionUnit: item.portionUnit as AnalyzedFoodItem['portionUnit'] } : {}),
+      ...(typeof item.gramsPerPiece === 'number' && Number.isFinite(item.gramsPerPiece) && item.gramsPerPiece > 0 ? { gramsPerPiece: item.gramsPerPiece } : {}),
     };
   });
   const total = (key: 'calories' | 'protein' | 'carbs' | 'fat') => items.reduce((sum, item) => sum + item[key], 0);

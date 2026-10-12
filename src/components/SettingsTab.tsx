@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Bell, ChevronLeft, ChevronRight, Download, Globe, Heart, KeyRound, Moon, Sun, Target, Trash2 } from 'lucide-react';
-import type { UserProfile } from '../types';
+import { Bell, ChevronLeft, ChevronRight, Download, Globe, Heart, KeyRound, Moon, RotateCcw, Sun, Target, Trash2, Volume2 } from 'lucide-react';
+import type { LoggedItem, UserProfile } from '../types';
 import { calculateEnergyNeeds } from '../utils/calculator';
 import { PlanSettings } from './PlanSettings';
 import { GeminiKeySettings } from './GeminiKeySettings';
@@ -14,11 +14,15 @@ interface SettingsTabProps {
   onThemeChange: (theme: 'dark' | 'light') => void;
   reminders: boolean;
   onRemindersChange: (enabled: boolean) => void;
+  sounds: boolean;
+  onSoundsChange: (enabled: boolean) => void;
   onExport: () => void;
+  recoverableMeals: LoggedItem[];
+  onRecoverMeal: (item: LoggedItem) => boolean;
 }
 
 export function SettingsTab(props: SettingsTabProps) {
-  const [view, setView] = useState<'main' | 'plan' | 'notifications' | 'gemini'>('main');
+  const [view, setView] = useState<'main' | 'plan' | 'notifications' | 'gemini' | 'recovery'>('main');
   const [permissionError, setPermissionError] = useState('');
   const calories = calculateEnergyNeeds(props.profile).tdee;
   const enableReminders = async () => {
@@ -31,6 +35,7 @@ export function SettingsTab(props: SettingsTabProps) {
   };
   if (view === 'plan') return <div className="settings-plan"><button type="button" className="text-back" onClick={() => setView('main')}><ChevronLeft size={18} />Settings</button><PlanSettings profile={props.profile} onSaveProfile={props.onSaveProfile} onOpenOnboarding={props.onOpenOnboarding} onClearAllData={props.onClearAllData} /></div>;
   if (view === 'gemini') return <GeminiKeySettings onBack={() => setView('main')} />;
+  if (view === 'recovery') return <div className="app-scroll settings-page"><button type="button" className="text-back" onClick={() => setView('main')}><ChevronLeft size={18} />Settings</button><h1>Recover meals</h1>{!props.recoverableMeals.length && <p className="settings-note">No recoverable meals found on this device.</p>}<div className="meal-recovery-list">{props.recoverableMeals.map(item => <div className="meal-recovery-row" key={item.id}><div><strong>{item.name}</strong><small>{item.date} · {Math.round(item.calories)} kcal</small></div><button type="button" className="icon-command" aria-label={`Restore ${item.name} from ${item.date}`} title="Restore meal" onClick={() => props.onRecoverMeal(item)}><RotateCcw size={21} /></button></div>)}</div></div>;
   if (view === 'notifications') return <div className="app-scroll settings-page"><button type="button" className="text-back" onClick={() => setView('main')}><ChevronLeft size={18} />Settings</button><h1>Notifications</h1><div className="settings-group"><div className="settings-row"><span className="settings-symbol"><Bell size={21} /></span><span className="settings-row__label">Water reminders<small>Hourly, while Kalo is open</small></span><button type="button" role="switch" aria-label="Water reminders" aria-checked={props.reminders} onClick={enableReminders} className={`app-switch ${props.reminders ? 'is-on' : ''}`}><span /></button></div></div>{permissionError && <p role="alert" className="settings-note">{permissionError}</p>}</div>;
   return (
     <div className="app-scroll settings-page">
@@ -39,13 +44,15 @@ export function SettingsTab(props: SettingsTabProps) {
       <section><h2>Health</h2><div className="settings-group"><div className="settings-row is-unavailable"><span className="settings-symbol settings-symbol--health"><Heart size={21} /></span><span className="settings-row__label">Apple Health</span><span className="settings-coming">Coming soon</span></div></div></section>
       <section><h2>App</h2><div className="settings-group">
         <div className="settings-row"><span className="settings-symbol"><Moon size={21} /></span><span className="settings-row__label">Appearance</span><button type="button" role="switch" aria-label="Dark appearance" aria-checked={props.theme === 'dark'} onClick={() => props.onThemeChange(props.theme === 'dark' ? 'light' : 'dark')} className="appearance-switch"><Sun size={15} /><Moon size={15} /><span className={props.theme === 'dark' ? 'is-dark' : ''}>{props.theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}</span></button></div>
+        <div className="settings-row"><span className="settings-symbol"><Volume2 size={21} /></span><span className="settings-row__label">Sound effects</span><button type="button" role="switch" aria-label="Sound effects" aria-checked={props.sounds} onClick={() => props.onSoundsChange(!props.sounds)} className={`app-switch ${props.sounds ? 'is-on' : ''}`}><span /></button></div>
         <div className="settings-row"><span className="settings-symbol"><Globe size={21} /></span><span className="settings-row__label">Language</span><span className="settings-row__value">English</span></div>
         <button type="button" className="settings-row" onClick={() => setView('notifications')}><span className="settings-symbol"><Bell size={21} /></span><span className="settings-row__label">Notifications</span><ChevronRight size={17} /></button>
         <button type="button" className="settings-row" onClick={() => setView('gemini')}><span className="settings-symbol"><KeyRound size={21} /></span><span className="settings-row__label">Gemini API key</span><ChevronRight size={17} /></button>
       </div></section>
       <section><h2>Your data</h2><div className="settings-group">
         <button type="button" className="settings-row" onClick={props.onExport}><span className="settings-symbol"><Download size={21} /></span><span className="settings-row__label">Export my data</span><ChevronRight size={17} /></button>
-        <button type="button" className="settings-row" onClick={() => { if (window.confirm('Delete all logged meals and workouts? This cannot be undone.')) props.onClearAllData(); }}><span className="settings-symbol settings-symbol--health"><Trash2 size={21} /></span><span className="settings-row__label">Clear meal & workout history</span><ChevronRight size={17} /></button>
+        <button type="button" className="settings-row" onClick={() => setView('recovery')}><span className="settings-symbol"><RotateCcw size={21} /></span><span className="settings-row__label">Recover meals</span><span className="settings-row__value">{props.recoverableMeals.length}</span><ChevronRight size={17} /></button>
+        <button type="button" className="settings-row" onClick={() => { if (window.confirm('Clear all logged meals and workouts from your history?')) props.onClearAllData(); }}><span className="settings-symbol settings-symbol--health"><Trash2 size={21} /></span><span className="settings-row__label">Clear meal & workout history</span><ChevronRight size={17} /></button>
       </div></section>
       <p className="settings-note">Your records are saved on this device. Export a copy to keep a backup.</p>
     </div>

@@ -23,7 +23,7 @@ export function RecipesTab({ recipes, onLogRecipeAsMeal, onRemoveRecipe, onOpenC
       const isExpanded = expanded === recipe.foodId;
       return <article className="photo-recipe" key={recipe.foodId}>
         <button type="button" className="photo-recipe__open" aria-expanded={isExpanded} aria-controls={`recipe-${recipe.foodId}`} onClick={() => { setExpanded(isExpanded ? null : recipe.foodId); setMeal(recipe.meal); }}>
-          <img src={recipe.imageUrl} alt={recipe.name} loading="lazy" />
+          {recipe.imageUrl ? <img src={recipe.imageUrl} alt={recipe.name} loading="lazy" /> : <span className="photo-recipe__missing"><Camera size={24} /></span>}
           <span className="photo-recipe__summary"><strong>{recipe.name}</strong><span>{Math.round(recipe.calories)} kcal <small>{Math.round(recipe.protein)}g protein</small></span></span>
           {isExpanded ? <ChevronUp size={19} /> : <ChevronDown size={19} />}
         </button>
