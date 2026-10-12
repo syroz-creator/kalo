@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, Check, Loader2, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
 import type { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
@@ -96,23 +97,23 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     finally { setSaving(false); }
   };
   return <div className="meal-scan">
-    <input ref={camera} type="file" accept="image/*" capture="environment" onChange={readPhoto} aria-label="Retake meal photo" hidden />
-    <input ref={library} type="file" accept="image/*" onChange={readPhoto} aria-label="Choose meal photo" hidden />
-    {photo && <div className="meal-scan__photo"><img src={photo} alt="Meal preview" />{!analyzing && <button type="button" onClick={takePhoto}><RefreshCw size={15} />Retake</button>}</div>}
-    {analyzing && <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>Scanning your meal...</span><button type="button" className="icon-command" aria-label="Cancel scan" title="Cancel scan" onClick={cancelScan}><X size={20} /></button></div>}
-    {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><div><strong>Could not analyze photo</strong><p>{error}</p><div className="meal-scan__recovery">{photo && <button type="button" onClick={() => void analyze(photo, portionDetails)}>Try again</button>}{onDescribeMeal && <button type="button" onClick={onDescribeMeal}>Describe instead</button>}</div></div></div>}
-    {!photo && <div className="meal-scan__empty"><button type="button" className="primary-command" onClick={takePhoto}><Camera size={19} />Take a photo</button><button type="button" className="text-back" onClick={() => library.current?.click()}><Upload size={18} />Photo library</button></div>}
+    <input ref={camera} type="file" accept="image/*" capture="environment" onChange={readPhoto} aria-label={t("Retake meal photo")} hidden />
+    <input ref={library} type="file" accept="image/*" onChange={readPhoto} aria-label={t("Choose meal photo")} hidden />
+    {photo && <div className="meal-scan__photo"><img src={photo} alt={t("Meal preview")} />{!analyzing && <button type="button" onClick={takePhoto}><RefreshCw size={15} />{t("Retake")}</button>}</div>}
+    {analyzing && <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>{t("Scanning your meal...")}</span><button type="button" className="icon-command" aria-label={t("Cancel scan")} title={t("Cancel scan")} onClick={cancelScan}><X size={20} /></button></div>}
+    {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><div><strong>{t("Could not analyze photo")}</strong><p>{t(String(error))}</p><div className="meal-scan__recovery">{photo && <button type="button" onClick={() => void analyze(photo, portionDetails)}>{t("Try again")}</button>}{onDescribeMeal && <button type="button" onClick={onDescribeMeal}>{t("Describe instead")}</button>}</div></div></div>}
+    {!photo && <div className="meal-scan__empty"><button type="button" className="primary-command" onClick={takePhoto}><Camera size={19} />{t("Take a photo")}</button><button type="button" className="text-back" onClick={() => library.current?.click()}><Upload size={18} />{t("Photo library")}</button></div>}
     {result && <div className="meal-scan__result">
-      <h2>{name || 'Your meal'}</h2><p className="detail-calories"><strong>{Math.round(Number(nutrition.calories) || 0)}</strong> kcal</p>
-      <fieldset className="meal-segments"><legend>Meal type</legend><div>{(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(value => <button type="button" key={value} aria-pressed={meal === value} className={meal === value ? 'is-selected' : ''} onClick={() => { setMeal(value); onChangeTargetMeal?.(value); }}>{value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div></fieldset>
-      <h3>Food portions</h3><MealPortionEditor items={result.items} onChange={items => { setEditedItems(items); const totals = totalFoodNutrition(items); setNutrition({ calories: String(totals.calories), protein: String(totals.protein), carbs: String(totals.carbs), fat: String(totals.fat) }); }} />
+      <h2>{name || t('Your meal')}</h2><p className="detail-calories"><strong>{Math.round(Number(nutrition.calories) || 0)}</strong> {t("kcal")}</p>
+      <fieldset className="meal-segments"><legend>{t("Meal type")}</legend><div>{(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(value => <button type="button" key={value} aria-pressed={meal === value} className={meal === value ? 'is-selected' : ''} onClick={() => { setMeal(value); onChangeTargetMeal?.(value); }}>{t(value.charAt(0).toUpperCase() + value.slice(1))}</button>)}</div></fieldset>
+      <h3>{t("Food portions")}</h3><MealPortionEditor items={result.items} onChange={items => { setEditedItems(items); const totals = totalFoodNutrition(items); setNutrition({ calories: String(totals.calories), protein: String(totals.protein), carbs: String(totals.carbs), fat: String(totals.fat) }); }} />
       {result.notes && <p className="settings-note">{result.notes}</p>}
       {result.referenceTip && <p className="settings-note">{result.referenceTip}</p>}
-      <div className="app-field"><label htmlFor="photo-portion-details">Portion or label details (optional)</label><textarea id="photo-portion-details" ref={portionInput} rows={2} maxLength={2000} value={portionDetails} placeholder="e.g. 2 biscuits, 25 g total; label: 124 kcal per packet" onChange={event => setPortionDetails(event.target.value)} /></div>
-      <button type="button" className="text-back" disabled={portionDetails.trim() === resultDetails} onClick={() => { if (photo) { portionInput.current?.blur(); void analyze(photo, portionDetails); } }}><Sparkles size={18} />Update estimate</button>
-      <label className="app-field">Meal name<input value={name} onChange={event => setName(event.target.value)} /></label>
-      <div className="manual-nutrients">{fields.map(field => <label key={field} className="app-field">{field.charAt(0).toUpperCase() + field.slice(1)} ({field === 'calories' ? 'kcal' : 'g'})<input type="number" inputMode="decimal" min={0} step={field === 'calories' ? 1 : 0.1} value={nutrition[field]} onChange={event => setNutrition({ ...nutrition, [field]: event.target.value })} /></label>)}</div>
-      <p className="settings-note">Estimated nutrition</p><button type="button" className="primary-command" disabled={!valid || saving} onClick={() => void log()}>{saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{saving ? 'Saving...' : `Log ${Math.round(Number(nutrition.calories) || 0)} kcal to ${meal.charAt(0).toUpperCase() + meal.slice(1)}`}</button>
+      <div className="app-field"><label htmlFor="photo-portion-details">{t("Portion or label details (optional)")}</label><textarea id="photo-portion-details" ref={portionInput} rows={2} maxLength={2000} value={portionDetails} placeholder={t("e.g. 2 biscuits, 25 g total; label: 124 kcal per packet")} onChange={event => setPortionDetails(event.target.value)} /></div>
+      <button type="button" className="text-back" disabled={portionDetails.trim() === resultDetails} onClick={() => { if (photo) { portionInput.current?.blur(); void analyze(photo, portionDetails); } }}><Sparkles size={18} />{t("Update estimate")}</button>
+      <label className="app-field">{t("Meal name")}<input value={name} onChange={event => setName(event.target.value)} /></label>
+      <div className="manual-nutrients">{fields.map(field => <label key={field} className="app-field">{t(field.charAt(0).toUpperCase() + field.slice(1))} ({field === 'calories' ? t('kcal') : t('g')})<input type="number" inputMode="decimal" min={0} step={field === 'calories' ? 1 : 0.1} value={nutrition[field]} onChange={event => setNutrition({ ...nutrition, [field]: event.target.value })} /></label>)}</div>
+      <p className="settings-note">{t("Estimated nutrition")}</p><button type="button" className="primary-command" disabled={!valid || saving} onClick={() => void log()}>{saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{saving ? t('Saving...') : t('Log {calories} kcal to {meal}', { calories: Math.round(Number(nutrition.calories) || 0), meal: t(meal.charAt(0).toUpperCase() + meal.slice(1)) })}</button>
     </div>}
   </div>;
 }

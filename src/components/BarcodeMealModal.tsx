@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, Check, ChevronLeft, Loader2, ScanBarcode, SquarePen, Upload, X } from 'lucide-react';
 import type { LoggedItem, MealType, ProductPortion } from '../types';
@@ -68,23 +69,23 @@ export function BarcodeMealModal({ date, meal: initialMeal, onClose, onLog, onMa
     finally { setSaving(false); }
   }}>
     <div className="detail-scroll">
-      <button type="button" className="text-back" onClick={onClose}><ChevronLeft size={19} />Today</button><h1 id="barcode-title">Scan a barcode</h1>
-      <div className="barcode-preview" hidden={!camera}><video ref={video} muted playsInline aria-label="Barcode camera" /><span className="barcode-viewfinder" aria-hidden="true" /><button type="button" className="icon-command" aria-label="Stop barcode camera" title="Stop camera" onClick={stopCamera}><X size={22} /></button></div>
-      <div className="barcode-tools"><button type="button" className="primary-command" disabled={busy || camera} onClick={() => void scan()}><Camera size={19} />Scan barcode</button><button type="button" className="icon-command" title="Choose barcode photo" aria-label="Choose barcode photo" disabled={busy} onClick={() => photoInput.current?.click()}><Upload size={22} /></button></div>
-      <input ref={photoInput} type="file" accept="image/*" aria-label="Barcode photo" hidden onChange={event => { const file = event.target.files?.[0]; if (file) void readPhoto(file); event.target.value = ''; }} />
-      <div className="barcode-entry"><div className="app-field"><label htmlFor="barcode-digits">Barcode digits</label><input ref={barcodeInput} id="barcode-digits" inputMode="numeric" autoComplete="off" value={barcode} maxLength={24} disabled={busy} onChange={event => { stopCamera(); setBarcode(event.target.value); setPortion(null); setError(''); }} /></div><button type="button" className="icon-command" title="Find product" aria-label="Find product" disabled={busy || !barcode.trim()} onClick={() => void findProduct(barcode)}><ScanBarcode size={22} /></button></div>
-      {busy && <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>Finding your product...</span><button type="button" className="icon-command" title="Cancel lookup" aria-label="Cancel lookup" onClick={() => { request.current?.abort(); setBusy(false); }}><X size={20} /></button></div>}
-      {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><p>{error}</p></div>}
-      {portion && nutrition && <section className="barcode-product" aria-label="Scanned product">
+      <button type="button" className="text-back" onClick={onClose}><ChevronLeft size={19} />{t("Today")}</button><h1 id="barcode-title">{t("Scan a barcode")}</h1>
+      <div className="barcode-preview" hidden={!camera}><video ref={video} muted playsInline aria-label={t("Barcode camera")} /><span className="barcode-viewfinder" aria-hidden="true" /><button type="button" className="icon-command" aria-label={t("Stop barcode camera")} title={t("Stop camera")} onClick={stopCamera}><X size={22} /></button></div>
+      <div className="barcode-tools"><button type="button" className="primary-command" disabled={busy || camera} onClick={() => void scan()}><Camera size={19} />{t("Scan barcode")}</button><button type="button" className="icon-command" title={t("Choose barcode photo")} aria-label={t("Choose barcode photo")} disabled={busy} onClick={() => photoInput.current?.click()}><Upload size={22} /></button></div>
+      <input ref={photoInput} type="file" accept="image/*" aria-label={t("Barcode photo")} hidden onChange={event => { const file = event.target.files?.[0]; if (file) void readPhoto(file); event.target.value = ''; }} />
+      <div className="barcode-entry"><div className="app-field"><label htmlFor="barcode-digits">{t("Barcode digits")}</label><input ref={barcodeInput} id="barcode-digits" inputMode="numeric" autoComplete="off" value={barcode} maxLength={24} disabled={busy} onChange={event => { stopCamera(); setBarcode(event.target.value); setPortion(null); setError(''); }} /></div><button type="button" className="icon-command" title={t("Find product")} aria-label={t("Find product")} disabled={busy || !barcode.trim()} onClick={() => void findProduct(barcode)}><ScanBarcode size={22} /></button></div>
+      {busy && <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>{t("Finding your product...")}</span><button type="button" className="icon-command" title={t("Cancel lookup")} aria-label={t("Cancel lookup")} onClick={() => { request.current?.abort(); setBusy(false); }}><X size={20} /></button></div>}
+      {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><p>{t(String(error))}</p></div>}
+      {portion && nutrition && <section className="barcode-product" aria-label={t("Scanned product")}>
         <div className="barcode-product__heading">{portion.product.imageUrl && <img src={portion.product.imageUrl} alt={portion.product.name} />}<div><h2>{portion.product.name}</h2>{portion.product.brand && <p>{portion.product.brand}</p>}</div></div>
-        <p className="detail-calories"><strong>{nutrition.calories}</strong> kcal</p>
+        <p className="detail-calories"><strong>{nutrition.calories}</strong> {t("kcal")}</p>
         <ProductPortionControls portion={portion} onChange={setPortion} />
-        <div className="detail-macros">{(['protein', 'carbs', 'fat'] as const).map(field => <div className={`detail-macro detail-macro--${field}`} key={field}><span />{field.charAt(0).toUpperCase() + field.slice(1)}<strong>{nutrition[field]}<small>g</small></strong></div>)}</div>
-        <a className="settings-note barcode-source" href={`https://world.openfoodfacts.org/product/${portion.product.barcode}`} target="_blank" rel="noreferrer">Open Food Facts</a>
+        <div className="detail-macros">{(['protein', 'carbs', 'fat'] as const).map(field => <div className={`detail-macro detail-macro--${field}`} key={field}><span />{t(field.charAt(0).toUpperCase() + field.slice(1))}<strong>{nutrition[field]}<small>{t("g")}</small></strong></div>)}</div>
+        <a className="settings-note barcode-source" href={`https://world.openfoodfacts.org/product/${portion.product.barcode}`} target="_blank" rel="noreferrer">{t("Open Food Facts")}</a>
       </section>}
-      <label className="app-field">Meal<select value={meal} onChange={event => setMeal(event.target.value as MealType)}>{(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(value => <option key={value} value={value}>{value.charAt(0).toUpperCase() + value.slice(1)}</option>)}</select></label>
-      <button type="button" className="text-back" onClick={onManual}><SquarePen size={18} />Log manually</button>
+      <label className="app-field">{t("Meal")}<select value={meal} onChange={event => setMeal(event.target.value as MealType)}>{(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(value => <option key={value} value={value}>{t(value.charAt(0).toUpperCase() + value.slice(1))}</option>)}</select></label>
+      <button type="button" className="text-back" onClick={onManual}><SquarePen size={18} />{t("Log manually")}</button>
     </div>
-    <footer className="detail-footer"><button type="submit" className="primary-command" disabled={!valid || saving}>{saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{saving ? 'Saving...' : `Log ${nutrition?.calories || 0} kcal`}</button></footer>
+    <footer className="detail-footer"><button type="submit" className="primary-command" disabled={!valid || saving}>{saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{saving ? t('Saving...') : t('Log {calories} kcal', { calories: nutrition?.calories || 0 })}</button></footer>
   </form>;
 }

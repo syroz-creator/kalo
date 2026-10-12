@@ -1,3 +1,4 @@
+import { t, useLanguage } from './i18n';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Home, TrendingUp, Camera, BookOpen, UserRound, X } from 'lucide-react';
 import type { AnalyzedFoodItem, LoggedItem, MealType, UserProfile, WorkoutItem } from './types';
@@ -28,6 +29,7 @@ function preference(key: string) { try { return localStorage.getItem(key); } cat
 const id = () => crypto.randomUUID();
 
 export default function App() {
+  useLanguage();
   const [activePage, setActivePage] = useState<ActivePage>('today');
   const [selectedDate, setSelectedDate] = useState(getTodayKey);
   const [userProfile, setUserProfile] = useState<UserProfile>(loadUserProfile);
@@ -107,7 +109,7 @@ export default function App() {
   useEffect(() => {
     if (!reminders) return;
     const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && 'Notification' in window && Notification.permission === 'granted') new Notification('Time for a water break', { body: 'A little refill for your day.', icon: '/icons/icon-192.png' });
+      if (document.visibilityState === 'visible' && 'Notification' in window && Notification.permission === 'granted') new Notification(t('Time for a water break'), { body: t('A little refill for your day.'), icon: '/icons/icon-192.png' });
     }, 60 * 60 * 1000);
     return () => window.clearInterval(timer);
   }, [reminders]);
@@ -148,7 +150,7 @@ export default function App() {
     if (!setLoggedItems(items => items.filter(item => item.id !== itemId))) return false;
     if (editingItem?.id === itemId) setEditingItem(null);
     playSound('delete');
-    showToast(removed ? `${removed.name} deleted` : 'Meal deleted', removed ? () => setLoggedItems(items => items.some(item => item.id === removed.id) ? items : [...items.slice(0, position), removed, ...items.slice(position)]) : undefined);
+    showToast(removed ? t('{name} deleted', { name: removed.name }) : 'Meal deleted', removed ? () => setLoggedItems(items => items.some(item => item.id === removed.id) ? items : [...items.slice(0, position), removed, ...items.slice(position)]) : undefined);
     return true;
   };
   const repeatMeal = (item: LoggedItem) => {
@@ -206,18 +208,18 @@ export default function App() {
         {activePage === 'recipes' && <RecipesTab recipes={recipes} onLogRecipeAsMeal={logRecipe} onRemoveRecipe={foodId => updateRecipes(items => items.filter(item => item.foodId !== foodId))} onOpenCamera={openCamera} />}
         {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { if (setLoggedItems(() => [])) { setWorkouts([]); showToast('History cleared'); } }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} sounds={sounds} onSoundsChange={setSounds} onExport={exportData} recoverableMeals={loadRecoverableMeals(loggedItems)} onRecoverMeal={item => { const saved = setLoggedItems(items => items.some(meal => meal.id === item.id) ? items : [item, ...items]); if (saved) showToast('Meal restored to its original day'); return saved; }} />}
       </main>
-      <nav className="app-nav" aria-label="Main navigation">{tabs.map((tab, index) => <React.Fragment key={tab.key}>{index === 2 && <button type="button" className="center-camera" title="Photograph a meal" aria-label="Take picture of meal" onClick={openCamera}><Camera size={28} /></button>}<button type="button" aria-current={activePage === tab.key ? 'page' : undefined} onClick={() => setActivePage(tab.key)}><tab.icon size={24} strokeWidth={1.6} /><span>{tab.label}</span></button></React.Fragment>)}</nav>
+      <nav className="app-nav" aria-label={t("Main navigation")}>{tabs.map((tab, index) => <React.Fragment key={tab.key}>{index === 2 && <button type="button" className="center-camera" title={t("Photograph a meal")} aria-label={t("Take picture of meal")} onClick={openCamera}><Camera size={28} /></button>}<button type="button" aria-current={activePage === tab.key ? 'page' : undefined} onClick={() => setActivePage(tab.key)}><tab.icon size={24} strokeWidth={1.6} /><span>{t(String(tab.label))}</span></button></React.Fragment>)}</nav>
     </div>
-    {toast && <div className="app-toast" role="status"><span>{toast.message}</span>{toast.undo && <button type="button" onClick={() => { toast.undo?.(); setToast(null); }}>Undo</button>}</div>}
-    {storageError && <div className="storage-alert" role="alert"><p>{storageError}</p><button type="button" onClick={exportData}>Export data</button></div>}
+    {toast && <div className="app-toast" role="status"><span>{t(String(toast.message))}</span>{toast.undo && <button type="button" onClick={() => { toast.undo?.(); setToast(null); }}>{t("Undo")}</button>}</div>}
+    {storageError && <div className="storage-alert" role="alert"><p>{t(String(storageError))}</p><button type="button" onClick={exportData}>{t("Export data")}</button></div>}
     <div inert={opening} className="app-dialog-layer">
       <OnboardingModal isOpen={isOnboardingOpen} initialProfile={userProfile} onComplete={profile => { setUserProfile(profile); setIsOnboardingOpen(false); showToast('Your daily target is set.'); }} />
       {manualMeal && <ManualMealModal meal={manualMeal} initialMode={manualMode} date={selectedDate} onClose={() => setManualMeal(null)} onLog={async item => !!(await addMeal(item))} />}
       {barcodeMeal && <BarcodeMealModal date={selectedDate} meal={barcodeMeal} onClose={() => setBarcodeMeal(null)} onLog={async item => !!(await addMeal(item))} onManual={() => { setManualMode('manual'); setManualMeal(barcodeMeal); setBarcodeMeal(null); }} />}
       <EditLoggedModal isOpen={!!editingItem} item={editingItem} onClose={() => setEditingItem(null)} onUpdate={(itemId, updates) => { if (!setLoggedItems(items => items.map(item => item.id === itemId ? { ...item, ...updates } : item))) return false; updateRecipes(items => items.map(item => item.foodId === editingItem?.foodId ? { ...item, ...updates } : item)); showToast('Meal updated'); return true; }} onDelete={deleteMeal} />
-      {isAiSnapModalOpen && <section className="scanner-dialog" role="dialog" aria-modal="true" aria-label="Meal photo"><header><h2>Meal photo</h2><button type="button" className="icon-command" aria-label="Close meal photo" onClick={() => setIsAiSnapModalOpen(false)}><X size={22} /></button></header><div className="scanner-scroll"><AiMealScanner targetMeal={targetMeal} initialImage={snappedInitialImage} onChangeTargetMeal={setTargetMeal} onLogMealResult={logScan} onClose={() => setIsAiSnapModalOpen(false)} onNativeCameraPendingChange={pending => { nativeCameraPending.current = pending; }} onDescribeMeal={() => openDescription(targetMeal)} isModal /></div></section>}
+      {isAiSnapModalOpen && <section className="scanner-dialog" role="dialog" aria-modal="true" aria-label={t("Meal photo")}><header><h2>{t("Meal photo")}</h2><button type="button" className="icon-command" aria-label={t("Close meal photo")} onClick={() => setIsAiSnapModalOpen(false)}><X size={22} /></button></header><div className="scanner-scroll"><AiMealScanner targetMeal={targetMeal} initialImage={snappedInitialImage} onChangeTargetMeal={setTargetMeal} onLogMealResult={logScan} onClose={() => setIsAiSnapModalOpen(false)} onNativeCameraPendingChange={pending => { nativeCameraPending.current = pending; }} onDescribeMeal={() => openDescription(targetMeal)} isModal /></div></section>}
     </div>
-    <input ref={directCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} aria-label="Photograph meal" hidden />
+    <input ref={directCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhoto} aria-label={t("Photograph meal")} hidden />
     {opening && <OpeningSplash key={openingKey} onComplete={finishOpening} />}
     {celebrating && <GoalCelebration onClose={finishCelebration} />}
   </div></div>;

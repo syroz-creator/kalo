@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
-export function useDialogFocus(open: boolean, onClose: () => void) {
-  const ref = useRef<HTMLFormElement>(null);
+export function useDialogFocus<T extends HTMLElement = HTMLFormElement>(open: boolean, onClose: () => void) {
+  const ref = useRef<T>(null);
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {

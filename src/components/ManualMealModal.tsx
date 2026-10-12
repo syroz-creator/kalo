@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, ChevronLeft, Check, Loader2, Sparkles, X } from 'lucide-react';
 import type { AnalyzedFoodItem, LoggedItem, MealAnalysisResult, MealType } from '../types';
@@ -55,25 +56,25 @@ export function ManualMealModal({ meal: initialMeal, initialMode = 'manual', dat
       finally { setSaving(false); }
     }}>
       <div className="detail-scroll">
-        <button type="button" className="text-back" onClick={onClose}><ChevronLeft size={19} />Today</button>
-        <h1 id="manual-title">Log a meal</h1>
-        <fieldset className="meal-segments meal-input-modes"><legend className="sr-only">Meal entry</legend><div>{(['describe', 'manual'] as const).map(value => <button type="button" key={value} disabled={estimating} aria-pressed={mode === value} className={mode === value ? 'is-selected' : ''} onClick={() => { setMode(value); setError(''); }}>{value === 'describe' ? 'Describe' : 'Manual'}</button>)}</div></fieldset>
+        <button type="button" className="text-back" onClick={onClose}><ChevronLeft size={19} />{t("Today")}</button>
+        <h1 id="manual-title">{t("Log a meal")}</h1>
+        <fieldset className="meal-segments meal-input-modes"><legend className="sr-only">{t("Meal entry")}</legend><div>{(['describe', 'manual'] as const).map(value => <button type="button" key={value} disabled={estimating} aria-pressed={mode === value} className={mode === value ? 'is-selected' : ''} onClick={() => { setMode(value); setError(''); }}>{value === 'describe' ? t('Describe') : t('Manual')}</button>)}</div></fieldset>
         {mode === 'describe' && <>
-          <div className="app-field"><label htmlFor="meal-description">Meal description</label><textarea id="meal-description" ref={descriptionInput} autoFocus={initialMode === 'describe'} value={description} disabled={estimating} maxLength={2000} rows={4} placeholder="e.g. 200 g grilled chicken, 1 cup rice, salad and 1 tbsp olive oil" onChange={event => {
+          <div className="app-field"><label htmlFor="meal-description">{t("Meal description")}</label><textarea id="meal-description" ref={descriptionInput} autoFocus={initialMode === 'describe'} value={description} disabled={estimating} maxLength={2000} rows={4} placeholder={t("e.g. 200 g grilled chicken, 1 cup rice, salad and 1 tbsp olive oil")} onChange={event => {
             setDescription(event.target.value); setError('');
             if (estimate) { setEstimate(null); setName(''); setNutrition({ calories: '', protein: '', carbs: '', fat: '' }); }
           }} /></div>
-          {estimating ? <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>Estimating your meal...</span><button type="button" className="icon-command" aria-label="Cancel estimate" title="Cancel estimate" onClick={cancelEstimate}><X size={20} /></button></div>
-            : <button type="button" className="primary-command" disabled={!description.trim()} onClick={() => void estimateMeal()}><Sparkles size={18} />{error ? 'Try again' : 'Estimate nutrition'}</button>}
-          {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><p>{error}</p></div>}
-          {estimate && <section className="meal-estimate" aria-label="Estimated meal"><h2>{estimate.dishName}</h2><p className="detail-calories"><strong>{Math.round(Number(nutrition.calories) || 0)}</strong> kcal</p><MealPortionEditor items={estimate.items} onChange={items => { setEditedItems(items); const totals = totalFoodNutrition(items); setNutrition({ calories: String(totals.calories), protein: String(totals.protein), carbs: String(totals.carbs), fat: String(totals.fat) }); }} />{estimate.notes && <p className="settings-note">{estimate.notes}</p>}</section>}
+          {estimating ? <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>{t("Estimating your meal...")}</span><button type="button" className="icon-command" aria-label={t("Cancel estimate")} title={t("Cancel estimate")} onClick={cancelEstimate}><X size={20} /></button></div>
+            : <button type="button" className="primary-command" disabled={!description.trim()} onClick={() => void estimateMeal()}><Sparkles size={18} />{error ? t('Try again') : t('Estimate nutrition')}</button>}
+          {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><p>{t(String(error))}</p></div>}
+          {estimate && <section className="meal-estimate" aria-label={t("Estimated meal")}><h2>{estimate.dishName}</h2><p className="detail-calories"><strong>{Math.round(Number(nutrition.calories) || 0)}</strong> {t("kcal")}</p><MealPortionEditor items={estimate.items} onChange={items => { setEditedItems(items); const totals = totalFoodNutrition(items); setNutrition({ calories: String(totals.calories), protein: String(totals.protein), carbs: String(totals.carbs), fat: String(totals.fat) }); }} />{estimate.notes && <p className="settings-note">{estimate.notes}</p>}</section>}
         </>}
-        {(mode === 'manual' || estimate) && <label className="app-field">Meal name<input autoFocus={initialMode === 'manual' && mode === 'manual'} required value={name} onChange={event => setName(event.target.value)} placeholder="e.g. Eggs on toast" /></label>}
-        <label className="app-field">Meal<select value={meal} onChange={event => setMeal(event.target.value as MealType)}>{['breakfast', 'lunch', 'dinner', 'snacks'].map(value => <option key={value} value={value}>{value.charAt(0).toUpperCase() + value.slice(1)}</option>)}</select></label>
-        {(mode === 'manual' || estimate) && <div className="manual-nutrients">{(['calories', 'protein', 'carbs', 'fat'] as const).map(key => <label key={key} className="app-field">{key.charAt(0).toUpperCase() + key.slice(1)} ({key === 'calories' ? 'kcal' : 'g'})<input type="number" inputMode="decimal" min={0} step={key === 'calories' ? 1 : 0.1} required={key === 'calories' || !!estimate} value={nutrition[key]} onChange={event => setNutrition({ ...nutrition, [key]: event.target.value })} placeholder="0" /></label>)}</div>}
-        {estimate && <p className="settings-note">Estimated nutrition</p>}
+        {(mode === 'manual' || estimate) && <label className="app-field">{t("Meal name")}<input autoFocus={initialMode === 'manual' && mode === 'manual'} required value={name} onChange={event => setName(event.target.value)} placeholder={t("e.g. Eggs on toast")} /></label>}
+        <label className="app-field">{t("Meal")}<select value={meal} onChange={event => setMeal(event.target.value as MealType)}>{['breakfast', 'lunch', 'dinner', 'snacks'].map(value => <option key={value} value={value}>{t(value.charAt(0).toUpperCase() + value.slice(1))}</option>)}</select></label>
+        {(mode === 'manual' || estimate) && <div className="manual-nutrients">{(['calories', 'protein', 'carbs', 'fat'] as const).map(key => <label key={key} className="app-field">{t(key.charAt(0).toUpperCase() + key.slice(1))} ({key === 'calories' ? t('kcal') : t('g')})<input type="number" inputMode="decimal" min={0} step={key === 'calories' ? 1 : 0.1} required={key === 'calories' || !!estimate} value={nutrition[key]} onChange={event => setNutrition({ ...nutrition, [key]: event.target.value })} placeholder="0" /></label>)}</div>}
+        {estimate && <p className="settings-note">{t("Estimated nutrition")}</p>}
       </div>
-      <footer className="detail-footer"><button type="submit" disabled={!valid || saving} className="primary-command">{saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{saving ? 'Saving...' : 'Log meal'}</button></footer>
+      <footer className="detail-footer"><button type="submit" disabled={!valid || saving} className="primary-command">{saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{saving ? t('Saving...') : t('Log meal')}</button></footer>
     </form>
   );
 }

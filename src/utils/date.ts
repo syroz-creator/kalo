@@ -1,3 +1,5 @@
+import { getLocale, t } from '../i18n';
+
 export function getTodayKey(): string {
   const now = new Date();
   return formatDateKey(now);
@@ -33,15 +35,15 @@ export function getDisplayDateInfo(dateKey: string): {
   const tomorrowKey = addDaysToKey(todayKey, 1);
 
   const dateObj = parseDateKey(dateKey);
-  const weekday = dateObj.toLocaleDateString(undefined, { weekday: 'short' });
-  const monthDay = dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const weekday = dateObj.toLocaleDateString(getLocale(), { weekday: 'short' });
+  const monthDay = dateObj.toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' });
 
   if (dateKey === todayKey) {
     return {
       isToday: true,
       isYesterday: false,
       isTomorrow: false,
-      label: 'Today',
+      label: t('Today'),
       subLabel: `${weekday}, ${monthDay}`,
     };
   }
@@ -51,7 +53,7 @@ export function getDisplayDateInfo(dateKey: string): {
       isToday: false,
       isYesterday: true,
       isTomorrow: false,
-      label: 'Yesterday',
+      label: t('Yesterday'),
       subLabel: `${weekday}, ${monthDay}`,
     };
   }
@@ -61,7 +63,7 @@ export function getDisplayDateInfo(dateKey: string): {
       isToday: false,
       isYesterday: false,
       isTomorrow: true,
-      label: 'Tomorrow',
+      label: t('Tomorrow'),
       subLabel: `${weekday}, ${monthDay}`,
     };
   }
@@ -110,7 +112,7 @@ export function getWeekDates(selectedKey: string): WeekDayItem[] {
       dateKey: key,
       dayLetter: letters[i],
       dayNumber: current.getDate(),
-      monthShort: current.toLocaleDateString(undefined, { month: 'short' }),
+      monthShort: current.toLocaleDateString(getLocale(), { month: 'short' }),
       isToday: key === todayKey,
       isSelected: key === selectedKey,
     });

@@ -1,3 +1,4 @@
+import { t, getLocale } from '../i18n';
 import { CalendarDays, Flame, Minus, Plus, ScanBarcode, Sparkles, SquarePen, UtensilsCrossed } from 'lucide-react';
 import type { DailyEnergyNeeds, LoggedItem, MealType } from '../types';
 import { addDaysToKey, getTodayKey, parseDateKey } from '../utils/date';
@@ -42,33 +43,33 @@ export function TodayTab(props: TodayTabProps) {
 
   return (
     <div className="app-scroll today-page">
-      <header className="today-heading"><div><p>{selected.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>{selectedDate === today ? 'Today' : selected.toLocaleDateString('en-US', { weekday: 'long' })}</h1></div><span className="day-streak" title={`${streak} day logging streak`}><Flame size={17} />{streak}</span></header>
+      <header className="today-heading"><div><p>{selected.toLocaleDateString(getLocale(), { weekday: 'long', month: 'long', day: 'numeric' })}</p><h1>{selectedDate === today ? t('Today') : selected.toLocaleDateString(getLocale(), { weekday: 'long' })}</h1></div><span className="day-streak" title={t('{count} day logging streak', { count: streak })}><Flame size={17} />{streak}</span></header>
       <div className="week-strip">{Array.from({ length: 7 }, (_, index) => {
         const date = addDaysToKey(start, index);
         const parsed = parseDateKey(date);
-        return <button type="button" key={date} onClick={() => onSelectDate(date)} aria-label={parsed.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} aria-pressed={date === selectedDate} className={date === selectedDate ? 'is-selected' : ''}><span>{parsed.toLocaleDateString('en-US', { weekday: 'short' })}</span><strong>{parsed.getDate()}</strong></button>;
+        return <button type="button" key={date} onClick={() => onSelectDate(date)} aria-label={parsed.toLocaleDateString(getLocale(), { weekday: 'long', month: 'long', day: 'numeric' })} aria-pressed={date === selectedDate} className={date === selectedDate ? 'is-selected' : ''}><span>{parsed.toLocaleDateString(getLocale(), { weekday: 'short' })}</span><strong>{parsed.getDate()}</strong></button>;
       })}</div>
-      <section className="calorie-panel" aria-label="Daily nutrition">
+      <section className="calorie-panel" aria-label={t("Daily nutrition")}>
         <div className="calorie-panel__top">
-          <div className="water-gauge"><span>Water</span><div className="water-gauge__track"><i style={{ height: `${Math.min(100, props.cupsDrank / 10 * 100)}%` }} /></div><strong>{(props.cupsDrank * 0.25).toFixed(2)}<small>/ 2.50 L</small></strong><button type="button" aria-label="Add 1 cup of water" title="Add 250 ml" disabled={props.cupsDrank >= 10} onClick={() => props.onUpdateWaterCups(props.cupsDrank + 1)}><Plus size={20} /></button>{props.cupsDrank > 0 && <button type="button" className="water-gauge__minus" aria-label="Remove 1 cup of water" title="Remove 250 ml" onClick={() => props.onUpdateWaterCups(props.cupsDrank - 1)}><Minus size={15} /></button>}</div>
+          <div className="water-gauge"><span>{t("Water")}</span><div className="water-gauge__track"><i style={{ height: `${Math.min(100, props.cupsDrank / 10 * 100)}%` }} /></div><strong>{(props.cupsDrank * 0.25).toFixed(2)}<small>{t("/ 2.50 L")}</small></strong><button type="button" aria-label={t("Add 1 cup of water")} title={t("Add 250 ml")} disabled={props.cupsDrank >= 10} onClick={() => props.onUpdateWaterCups(props.cupsDrank + 1)}><Plus size={20} /></button>{props.cupsDrank > 0 && <button type="button" className="water-gauge__minus" aria-label={t("Remove 1 cup of water")} title={t("Remove 250 ml")} onClick={() => props.onUpdateWaterCups(props.cupsDrank - 1)}><Minus size={15} /></button>}</div>
           <div className="calorie-ring">
             <svg viewBox="0 0 240 240" aria-hidden="true"><circle cx="120" cy="120" r="102" fill="none" stroke="var(--track)" strokeWidth="14" /><circle cx="120" cy="120" r="102" fill="none" stroke="var(--orange)" strokeWidth="14" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)} transform="rotate(-90 120 120)" className="calorie-ring__arc" /></svg>
-            <div className="calorie-ring__number"><strong style={{ fontSize: Math.abs(remaining) > 9999 ? 30 : undefined }}>{Math.abs(remaining).toLocaleString('en-US')}</strong><span>{remaining >= 0 ? 'remaining · kcal' : 'over target · kcal'}</span></div>
-            {calories > 0 && <span className="calorie-ring__eaten" style={{ left: `${50 + 49 * Math.sin(angle)}%`, top: `${50 - 49 * Math.cos(angle)}%` }}>{calories.toLocaleString('en-US')}<Flame size={12} /></span>}
+            <div className="calorie-ring__number"><strong style={{ fontSize: Math.abs(remaining) > 9999 ? 30 : undefined }}>{Math.abs(remaining).toLocaleString(getLocale())}</strong><span>{remaining >= 0 ? t('remaining · kcal') : t('over target · kcal')}</span></div>
+            {calories > 0 && <span className="calorie-ring__eaten" style={{ left: `${50 + 49 * Math.sin(angle)}%`, top: `${50 - 49 * Math.cos(angle)}%` }}>{calories.toLocaleString(getLocale())}<Flame size={12} /></span>}
           </div>
         </div>
-        <div className="macro-bars">{macros.map(macro => <div key={macro.label} style={{ '--macro-color': macro.color } as React.CSSProperties}><div><span>{macro.label}</span><strong>{Math.round(macro.value)}<small>/{macro.target}g</small></strong></div><span className="macro-bars__track"><i style={{ width: `${Math.min(100, macro.value / Math.max(1, macro.target) * 100)}%` }} /></span></div>)}</div>
+        <div className="macro-bars">{macros.map(macro => <div key={macro.label} style={{ '--macro-color': macro.color } as React.CSSProperties}><div><span>{t(String(macro.label))}</span><strong dir="ltr">{Math.round(macro.value)}<small>/{macro.target}{t("g")}</small></strong></div><span className="macro-bars__track"><i style={{ width: `${Math.min(100, macro.value / Math.max(1, macro.target) * 100)}%` }} /></span></div>)}</div>
       </section>
-      <section className="meals-section"><header><h2>Today's meals</h2><label className="date-control" title="Choose date"><CalendarDays size={17} /><input type="date" aria-label="Choose log date" value={selectedDate} onChange={event => { if (event.target.value) onSelectDate(event.target.value); }} /></label></header>
-        {!items.length && <p className="meals-empty">No meals logged yet.</p>}
+      <section className="meals-section"><header><h2>{t("Today's meals")}</h2><label className="date-control" title={t("Choose date")}><CalendarDays size={17} /><input type="date" aria-label={t("Choose log date")} value={selectedDate} onChange={event => { if (event.target.value) onSelectDate(event.target.value); }} /></label></header>
+        {!items.length && <p className="meals-empty">{t("No meals logged yet.")}</p>}
         {(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(meal => {
           const group = items.filter(item => item.meal === meal);
           if (!group.length) return null;
-          return <div className="meal-group" key={meal}><div className="meal-group__heading"><h3><UtensilsCrossed size={16} />{meal.charAt(0).toUpperCase() + meal.slice(1)}</h3><span>{group.reduce((sum, item) => sum + item.calories, 0).toLocaleString('en-US')} kcal</span></div>{group.map(item => <MealRow key={item.id} item={item} onEdit={() => props.onEditItem(item)} onRepeat={() => props.onRepeatItem(item)} onDelete={() => props.onDeleteItem(item.id)} />)}</div>;
+          return <div className="meal-group" key={meal}><div className="meal-group__heading"><h3><UtensilsCrossed size={16} />{t(meal.charAt(0).toUpperCase() + meal.slice(1))}</h3><span>{group.reduce((sum, item) => sum + item.calories, 0).toLocaleString(getLocale())} {t("kcal")}</span></div>{group.map(item => <MealRow key={item.id} item={item} onEdit={() => props.onEditItem(item)} onRepeat={() => props.onRepeatItem(item)} onDelete={() => props.onDeleteItem(item.id)} />)}</div>;
         })}
-        <button type="button" className="manual-log" onClick={() => props.onBarcodeMeal('snacks')}><ScanBarcode size={21} />Scan barcode</button>
-        <button type="button" className="manual-log" onClick={() => props.onDescribeMeal('lunch')}><Sparkles size={21} />Describe a meal</button>
-        <button type="button" className="manual-log" onClick={() => props.onOpenLogModal('lunch')}><SquarePen size={21} />Log manually</button>
+        <button type="button" className="manual-log" onClick={() => props.onBarcodeMeal('snacks')}><ScanBarcode size={21} />{t("Scan barcode")}</button>
+        <button type="button" className="manual-log" onClick={() => props.onDescribeMeal('lunch')}><Sparkles size={21} />{t("Describe a meal")}</button>
+        <button type="button" className="manual-log" onClick={() => props.onOpenLogModal('lunch')}><SquarePen size={21} />{t("Log manually")}</button>
       </section>
     </div>
   );

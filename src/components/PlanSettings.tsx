@@ -1,3 +1,4 @@
+import { t, getLocale } from '../i18n';
 import React, { useState } from 'react';
 import {
   SlidersHorizontal,
@@ -117,12 +118,10 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-            <span>Settings & Needs</span>
+            <span>{t("Settings & Needs")}</span>
             <span className="w-2 h-2 rounded-full bg-yellow-400" />
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Calibrate your metabolic profile and formula parameters
-          </p>
+          <p className="text-xs text-zinc-400 mt-0.5">{t("Calibrate your metabolic profile and formula parameters")}</p>
         </div>
         <button
           type="button"
@@ -130,7 +129,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
           className="h-8 px-3 rounded-xl bg-yellow-400/10 hover:bg-yellow-400/20 text-yellow-400 border border-yellow-400/30 text-xs font-black transition-all flex items-center gap-1.5"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          <span>Wizard</span>
+          <span>{t("Wizard")}</span>
         </button>
       </div>
 
@@ -138,24 +137,19 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
       <div className="bg-[#18181B] rounded-3xl border border-[#27272A] p-4 shadow-lg space-y-3">
         <div className="flex items-baseline justify-between border-b border-zinc-800 pb-3">
           <div>
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-              Estimated Daily Needs
-            </span>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">{t("Estimated Daily Needs")}</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-3xl font-black tracking-tight text-white">
-                {energyNeeds.tdee.toLocaleString()}
+                {energyNeeds.tdee.toLocaleString(getLocale())}
               </span>
-              <span className="text-xs font-bold text-yellow-400">kcal / day</span>
+              <span className="text-xs font-bold text-yellow-400">{t("kcal / day")}</span>
             </div>
           </div>
 
           <div className="text-right">
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
-              Basal BMR
-            </span>
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">{t("Basal BMR")}</span>
             <span className="text-sm font-black text-zinc-300">
-              {energyNeeds.bmr.toLocaleString()} kcal
-            </span>
+              {energyNeeds.bmr.toLocaleString(getLocale())} {t("kcal")}</span>
           </div>
         </div>
 
@@ -163,26 +157,26 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
         <div className="space-y-1.5 text-xs text-zinc-300 bg-[#202024] rounded-2xl p-3 border border-zinc-800">
           <div className="flex items-center gap-1.5 font-black text-yellow-400">
             <Info className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Formula: {energyNeeds.equationName}</span>
+            <span>{t("Formula:")} {t(String(energyNeeds.equationName))}</span>
           </div>
           <p className="text-[11px] leading-relaxed text-zinc-400">
-            {energyNeeds.explanation}
+            {t(String(energyNeeds.explanation))}
           </p>
         </div>
 
         {/* Target Macro Breakdown */}
         <div className="grid grid-cols-3 gap-2 text-center pt-1">
           <div className="p-2.5 bg-[#202024] rounded-2xl border border-zinc-800">
-            <span className="block text-[10px] font-bold text-zinc-400 uppercase">Protein</span>
-            <span className="text-sm font-black text-white">{energyNeeds.proteinTargetGrams}g</span>
+            <span className="block text-[10px] font-bold text-zinc-400 uppercase">{t("Protein")}</span>
+            <span className="text-sm font-black text-white">{energyNeeds.proteinTargetGrams}{t("g")}</span>
           </div>
           <div className="p-2.5 bg-[#202024] rounded-2xl border border-zinc-800">
-            <span className="block text-[10px] font-bold text-zinc-400 uppercase">Carbs</span>
-            <span className="text-sm font-black text-white">{energyNeeds.carbsTargetGrams}g</span>
+            <span className="block text-[10px] font-bold text-zinc-400 uppercase">{t("Carbs")}</span>
+            <span className="text-sm font-black text-white">{energyNeeds.carbsTargetGrams}{t("g")}</span>
           </div>
           <div className="p-2.5 bg-[#202024] rounded-2xl border border-zinc-800">
-            <span className="block text-[10px] font-bold text-zinc-400 uppercase">Fat</span>
-            <span className="text-sm font-black text-white">{energyNeeds.fatTargetGrams}g</span>
+            <span className="block text-[10px] font-bold text-zinc-400 uppercase">{t("Fat")}</span>
+            <span className="text-sm font-black text-white">{energyNeeds.fatTargetGrams}{t("g")}</span>
           </div>
         </div>
       </div>
@@ -190,7 +184,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
       {/* Editable Parameters Form */}
       <form onSubmit={handleSave} className="bg-[#18181B] rounded-3xl border border-[#27272A] p-4 shadow-lg space-y-4">
         <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
-          <h3 className="text-sm font-black text-white">Body Parameters</h3>
+          <h3 className="text-sm font-black text-white">{t("Body Parameters")}</h3>
 
           <div className="flex bg-zinc-900 p-0.5 rounded-xl text-xs font-bold border border-zinc-800">
             <button
@@ -199,26 +193,20 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
               className={`px-2.5 py-1 rounded-lg transition-all ${
                 unitSystem === 'metric' ? 'bg-yellow-400 text-black shadow-xs' : 'text-zinc-400'
               }`}
-            >
-              Metric
-            </button>
+            >{t("Metric")}</button>
             <button
               type="button"
               onClick={() => setUnitSystem('imperial')}
               className={`px-2.5 py-1 rounded-lg transition-all ${
                 unitSystem === 'imperial' ? 'bg-yellow-400 text-black shadow-xs' : 'text-zinc-400'
               }`}
-            >
-              Imperial
-            </button>
+            >{t("Imperial")}</button>
           </div>
         </div>
 
         {/* Sex */}
         <div>
-          <label className="block text-xs font-bold text-zinc-300 mb-1.5">
-            Biological Sex (Equation Factor)
-          </label>
+          <label className="block text-xs font-bold text-zinc-300 mb-1.5">{t("Biological Sex (Equation Factor)")}</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -228,9 +216,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                   ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400 shadow-sm'
                   : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white'
               }`}
-            >
-              Female (-161)
-            </button>
+            >{t("Female (-161)")}</button>
             <button
               type="button"
               onClick={() => setSex('male')}
@@ -239,18 +225,16 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                   ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400 shadow-sm'
                   : 'border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white'
               }`}
-            >
-              Male (+5)
-            </button>
+            >{t("Male (+5)")}</button>
           </div>
         </div>
 
         {/* Age */}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-bold text-zinc-300">Age</label>
+            <label className="text-xs font-bold text-zinc-300">{t("Age")}</label>
             <span className="text-[11px] font-bold text-yellow-400">
-              {age < 18 ? 'Schofield Youth Standard' : 'Mifflin-St Jeor Standard'}
+              {age < 18 ? t('Schofield Youth Standard') : t('Mifflin-St Jeor Standard')}
             </span>
           </div>
           <input
@@ -268,7 +252,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
           {unitSystem === 'metric' ? (
             <>
               <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-1">Height (cm)</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">{t("Height (cm)")}</label>
                 <input
                   type="number"
                   min="80"
@@ -279,7 +263,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-1">Weight (kg)</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">{t("Weight (kg)")}</label>
                 <input
                   type="number"
                   step="0.5"
@@ -294,7 +278,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
           ) : (
             <>
               <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-1">Height (ft & in)</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">{t("Height (ft & in)")}</label>
                 <div className="grid grid-cols-2 gap-1.5">
                   <input
                     type="number"
@@ -305,7 +289,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                       const newFt = Number(e.target.value) || 5;
                       setHeightCm(ftInToCm(newFt, currentInch));
                     }}
-                    placeholder="ft"
+                    placeholder={t("ft")}
                     className="w-full px-2 py-2 text-sm font-bold bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-yellow-400"
                   />
                   <input
@@ -317,13 +301,13 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                       const newIn = Number(e.target.value) || 0;
                       setHeightCm(ftInToCm(currentFt, newIn));
                     }}
-                    placeholder="in"
+                    placeholder={t("in")}
                     className="w-full px-2 py-2 text-sm font-bold bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-yellow-400"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-1">Weight (lbs)</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">{t("Weight (lbs)")}</label>
                 <input
                   type="number"
                   step="0.5"
@@ -343,9 +327,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
 
         {/* Activity Level */}
         <div>
-          <label className="block text-xs font-bold text-zinc-300 mb-2">
-            Everyday Physical Activity
-          </label>
+          <label className="block text-xs font-bold text-zinc-300 mb-2">{t("Everyday Physical Activity")}</label>
           <div className="space-y-2">
             {ACTIVITY_OPTIONS.map((item) => (
               <label
@@ -365,8 +347,8 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                   className="mt-0.5 text-yellow-400 focus:ring-yellow-400"
                 />
                 <div className="text-xs">
-                  <div className="font-bold text-white">{item.label}</div>
-                  <div className="text-zinc-400 text-[11px] mt-0.5">{item.desc}</div>
+                  <div className="font-bold text-white">{t(String(item.label))}</div>
+                  <div className="text-zinc-400 text-[11px] mt-0.5">{t(String(item.desc))}</div>
                 </div>
               </label>
             ))}
@@ -375,9 +357,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
 
         {/* Goal Mode */}
         <div className="pt-2 border-t border-zinc-800">
-          <label className="block text-xs font-bold text-zinc-300 mb-2">
-            Target Calorie Goal
-          </label>
+          <label className="block text-xs font-bold text-zinc-300 mb-2">{t("Target Calorie Goal")}</label>
           <div className="space-y-2">
             <button
               type="button"
@@ -388,10 +368,8 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                   : 'border-zinc-800 bg-zinc-900 text-zinc-400'
               }`}
             >
-              <div>Use Calculated Estimate ({energyNeeds.tdee} kcal)</div>
-              <div className="text-[11px] text-zinc-400 font-normal mt-0.5">
-                Automatically adjusts with changes in body weight or activity.
-              </div>
+              <div>{t('Use Calculated Estimate ({calories} kcal)', { calories: energyNeeds.tdee })}</div>
+              <div className="text-[11px] text-zinc-400 font-normal mt-0.5">{t("Automatically adjusts with changes in body weight or activity.")}</div>
             </button>
 
             <button
@@ -403,10 +381,8 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                   : 'border-zinc-800 bg-zinc-900 text-zinc-400'
               }`}
             >
-              <div>Custom Calorie Target</div>
-              <div className="text-[11px] text-zinc-400 font-normal mt-0.5">
-                Specify a fixed daily target.
-              </div>
+              <div>{t("Custom Calorie Target")}</div>
+              <div className="text-[11px] text-zinc-400 font-normal mt-0.5">{t("Specify a fixed daily target.")}</div>
             </button>
 
             {isCustomTarget && (
@@ -417,7 +393,7 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
                   max="8000"
                   value={customCalories}
                   onChange={(e) => setCustomCalories(e.target.value)}
-                  placeholder="e.g. 2100"
+                  placeholder={t("e.g. 2100")}
                   className="w-full px-3 py-2 text-sm font-bold bg-zinc-900 border border-zinc-700 rounded-xl text-yellow-400 focus:outline-none focus:border-yellow-400"
                 />
               </div>
@@ -432,10 +408,10 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
           {savedSuccess ? (
             <>
               <Check className="w-4 h-4 text-black" />
-              <span>Settings Saved!</span>
+              <span>{t("Settings Saved!")}</span>
             </>
           ) : (
-            <span>Save Calorie Settings</span>
+            <span>{t("Save Calorie Settings")}</span>
           )}
         </button>
       </form>
@@ -444,22 +420,18 @@ export const PlanSettings: React.FC<SettingsTabProps> = ({
       <div className="bg-[#18181B] rounded-3xl border border-red-950/60 p-4 space-y-2">
         <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
           <Trash2 className="w-3.5 h-3.5" />
-          <span>Reset App Data</span>
+          <span>{t("Reset App Data")}</span>
         </h4>
-        <p className="text-[11px] text-zinc-500">
-          Clear all logged meals, workouts, and recalibrate from scratch.
-        </p>
+        <p className="text-[11px] text-zinc-500">{t("Clear all logged meals, workouts, and recalibrate from scratch.")}</p>
         <button
           type="button"
           onClick={() => {
-            if (window.confirm('Reset all logged meals and workouts?')) {
+            if (window.confirm(t('Reset all logged meals and workouts?'))) {
               onClearAllData();
             }
           }}
           className="text-xs font-bold text-red-400 hover:text-red-300 hover:underline"
-        >
-          Reset All Logs
-        </button>
+        >{t("Reset All Logs")}</button>
       </div>
     </div>
   );

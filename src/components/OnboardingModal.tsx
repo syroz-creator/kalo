@@ -1,8 +1,10 @@
+import { t, getLocale } from '../i18n';
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronLeft, Dumbbell, Equal, Mars, TrendingDown, Venus } from 'lucide-react';
 import { ActivityLevel, BiologicalSex, UnitSystem, UserProfile, WeightGoal } from '../types';
 import { calculateEnergyNeeds, kgToLbs, lbsToKg } from '../utils/calculator';
 import { NumberPicker } from './NumberPicker';
+import { LanguageSelector } from './LanguageSelector';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -89,7 +91,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
   const trapFocus = (event: React.KeyboardEvent) => {
     if (event.key !== 'Tab') return;
-    const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]');
+    const controls = dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]');
     if (!controls?.length) return;
     const first = controls[0];
     const last = controls[controls.length - 1];
@@ -109,25 +111,26 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         else onComplete(profile);
       }}>
       <header className="setup-header">
-        <span className="setup-step" aria-label={`Step ${step} of 6`}>{step} / 6</span>
-        <div className="setup-progress" role="progressbar" aria-label="Setup progress" aria-valuemin={0} aria-valuemax={6} aria-valuenow={step}>
+        <span className="setup-step" aria-label={t('Step {step} of 6', { step })}>{step} / 6</span>
+        <div className="setup-progress" role="progressbar" aria-label={t("Setup progress")} aria-valuemin={0} aria-valuemax={6} aria-valuenow={step}>
           <span style={{ width: `${step / 6 * 100}%` }} />
         </div>
-        <button type="button" aria-label="Previous step" title="Back" disabled={step === 1} onClick={() => setStep(step - 1)} className="setup-back"><ChevronLeft size={22} /></button>
+        <button type="button" aria-label={t("Previous step")} title={t("Back")} disabled={step === 1} onClick={() => setStep(step - 1)} className="setup-back"><ChevronLeft size={22} /></button>
       </header>
 
       <div ref={contentRef} className="setup-content">
-        <h2 id="setup-title" ref={headingRef} tabIndex={-1} className="setup-title">{titles[step - 1]}</h2>
-        <p className="setup-description">{descriptions[step - 1]}</p>
+        <div className="setup-language"><LanguageSelector /></div>
+        <h2 id="setup-title" ref={headingRef} tabIndex={-1} className="setup-title">{t(String(titles[step - 1]))}</h2>
+        <p className="setup-description">{t(String(descriptions[step - 1]))}</p>
 
         {step === 1 && (
           <fieldset className="setup-options">
-            <legend className="sr-only">Your goal</legend>
+            <legend className="sr-only">{t("Your goal")}</legend>
             {goals.map(option => (
               <label key={option.value} className={`setup-choice ${goal === option.value ? 'is-selected' : ''}`}>
                 <input type="radio" name="goal" checked={goal === option.value} onChange={() => setGoal(option.value)} className="sr-only" />
                 <span className="setup-choice__icon"><option.Icon size={23} strokeWidth={1.75} /></span>
-                <span className="setup-choice__copy"><strong>{option.label}</strong><span>{option.description}</span></span>
+                <span className="setup-choice__copy"><strong>{t(String(option.label))}</strong><span>{t(String(option.description))}</span></span>
                 <SelectionMark selected={goal === option.value} />
               </label>
             ))}
@@ -137,18 +140,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         {step === 2 && (
           <div className="setup-fields">
             <fieldset className="setup-sex">
-              <legend className="sr-only">Biological sex</legend>
+              <legend className="sr-only">{t("Biological sex")}</legend>
               {([{ value: 'female', label: 'Female', Icon: Venus }, { value: 'male', label: 'Male', Icon: Mars }] as const).map(option => (
                 <label key={option.value} className={`setup-sex__option ${sex === option.value ? 'is-selected' : ''}`}>
                   <input type="radio" name="sex" checked={sex === option.value} onChange={() => setSex(option.value)} className="sr-only" />
                   <option.Icon size={32} strokeWidth={1.75} aria-hidden="true" />
-                  <span>{option.label}</span>
+                  <span>{t(String(option.label))}</span>
                 </label>
               ))}
             </fieldset>
             <div className="setup-age">
-              <span className="setup-field-label">Your age</span>
-              <div className="setup-age__wheel"><NumberPicker label="Age" min={10} max={90} value={age} onChange={setAge} vertical /></div>
+              <span className="setup-field-label">{t("Your age")}</span>
+              <div className="setup-age__wheel"><NumberPicker label={t("Age")} min={10} max={90} value={age} onChange={setAge} vertical /></div>
             </div>
           </div>
         )}
@@ -156,33 +159,33 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         {step === 3 && (
           <div className="setup-measurements">
             <fieldset className="setup-units">
-              <legend className="sr-only">Measurement units</legend>
+              <legend className="sr-only">{t("Measurement units")}</legend>
               {(['metric', 'imperial'] as const).map(value => <label key={value} className={unitSystem === value ? 'is-selected' : ''}>
                 <input type="radio" name="units" checked={unitSystem === value} onChange={() => setUnitSystem(value)} className="sr-only" />
-                {value === 'metric' ? 'kg · cm' : 'lb · ft'}
+                {value === 'metric' ? t('kg · cm') : t('lb · ft')}
               </label>)}
             </fieldset>
             <div className="setup-measurement">
-              <span className="setup-field-label">Height</span>
-              <p className="setup-measurement__value">{metric ? Math.round(heightCm) : `${Math.floor(inches / 12)}′ ${inches % 12}″`}<span>{metric ? 'cm' : 'ft / in'}</span></p>
-              <NumberPicker key={`height-${unitSystem}`} label={metric ? 'Height in centimeters' : 'Height in inches'} min={metric ? 120 : 48} max={metric ? 220 : 86} value={metric ? heightCm : inches} onChange={value => setHeightCm(metric ? value : Math.round(value * 2.54))} />
+              <span className="setup-field-label">{t("Height")}</span>
+              <p className="setup-measurement__value">{metric ? Math.round(heightCm) : `${Math.floor(inches / 12)}′ ${inches % 12}″`}<span>{metric ? t('cm') : t('ft / in')}</span></p>
+              <NumberPicker key={`height-${unitSystem}`} label={metric ? t('Height in centimeters') : t('Height in inches')} min={metric ? 120 : 48} max={metric ? 220 : 86} value={metric ? heightCm : inches} onChange={value => setHeightCm(metric ? value : Math.round(value * 2.54))} />
             </div>
             <div className="setup-measurement">
-              <span className="setup-field-label">Weight</span>
-              <p className="setup-measurement__value">{Number(weight.toFixed(1))}<span>{weightUnit}</span></p>
-              <NumberPicker key={`weight-${unitSystem}`} label={metric ? 'Weight in kilograms' : 'Weight in pounds'} min={metric ? 35 : 77.5} max={metric ? 160 : 352.5} step={0.5} value={weight} onChange={value => setWeightKg(metric ? value : lbsToKg(value))} />
+              <span className="setup-field-label">{t("Weight")}</span>
+              <p className="setup-measurement__value">{Number(weight.toFixed(1))}<span>{t(weightUnit)}</span></p>
+              <NumberPicker key={`weight-${unitSystem}`} label={metric ? t('Weight in kilograms') : t('Weight in pounds')} min={metric ? 35 : 77.5} max={metric ? 160 : 352.5} step={0.5} value={weight} onChange={value => setWeightKg(metric ? value : lbsToKg(value))} />
             </div>
           </div>
         )}
 
         {step === 4 && (
           <fieldset className="setup-options">
-            <legend className="sr-only">Activity level</legend>
+            <legend className="sr-only">{t("Activity level")}</legend>
             {activities.map((option, index) => (
               <label key={option.value} className={`setup-choice ${activityLevel === option.value ? 'is-selected' : ''}`}>
                 <input type="radio" name="activity" checked={activityLevel === option.value} onChange={() => setActivityLevel(option.value)} className="sr-only" />
                 <span className="setup-choice__icon setup-activity-bars" aria-hidden="true">{[0, 1, 2, 3].map(bar => <i key={bar} style={{ height: 8 + bar * 5, opacity: bar <= index ? 1 : 0.22 }} />)}</span>
-                <span className="setup-choice__copy"><strong>{option.label}</strong><span>{option.description}</span></span>
+                <span className="setup-choice__copy"><strong>{t(String(option.label))}</strong><span>{t(String(option.description))}</span></span>
                 <SelectionMark selected={activityLevel === option.value} />
               </label>
             ))}
@@ -191,28 +194,28 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
         {step === 5 && (
           <div className="setup-pace">
-            <p className="setup-pace__value">{paceEnabled ? `${goal === 'lose' ? '−' : '+'}${paceDisplay}` : '0.00'}<span>{weightUnit} / week</span></p>
-            <input type="range" aria-label="Weekly weight change in kilograms" min={0.1} max={0.75} step={0.05} value={weeklyWeightChangeKg} disabled={!paceEnabled} onChange={event => setWeeklyWeightChangeKg(Number(event.target.value))} className="setup-pace__slider" style={{ '--pace-progress': `${paceEnabled ? (weeklyWeightChangeKg - 0.1) / 0.65 * 100 : 0}%` } as React.CSSProperties} />
-            <div className="setup-pace__ends"><span>Steady</span><span>Faster</span></div>
-            {!paceEnabled && <p className="setup-pace__note">{age < 18 ? 'Your plan supports your daily energy needs while you grow. Weight-change targets are for adults.' : 'Your plan will keep your weight steady. No weekly change needed.'}</p>}
+            <p className="setup-pace__value">{paceEnabled ? `${goal === 'lose' ? '−' : '+'}${paceDisplay}` : '0.00'}<span>{t(weightUnit)} {t("/ week")}</span></p>
+            <input type="range" aria-label={t("Weekly weight change in kilograms")} min={0.1} max={0.75} step={0.05} value={weeklyWeightChangeKg} disabled={!paceEnabled} onChange={event => setWeeklyWeightChangeKg(Number(event.target.value))} className="setup-pace__slider" style={{ '--pace-progress': `${paceEnabled ? (weeklyWeightChangeKg - 0.1) / 0.65 * 100 : 0}%` } as React.CSSProperties} />
+            <div className="setup-pace__ends"><span>{t("Steady")}</span><span>{t("Faster")}</span></div>
+            {!paceEnabled && <p className="setup-pace__note">{age < 18 ? t('Your plan supports your daily energy needs while you grow. Weight-change targets are for adults.') : t('Your plan will keep your weight steady. No weekly change needed.')}</p>}
           </div>
         )}
 
         {step === 6 && (
           <div className="setup-plan">
-            <span className="setup-plan__goal">{goals.find(option => option.value === goal)?.label}</span>
-            <p className="setup-plan__calories">{needs.tdee.toLocaleString('en-US')}</p>
-            <p className="setup-plan__unit">calories / day</p>
+            <span className="setup-plan__goal">{t(goals.find(option => option.value === goal)?.label ?? '')}</span>
+            <p className="setup-plan__calories">{needs.tdee.toLocaleString(getLocale())}</p>
+            <p className="setup-plan__unit">{t("calories / day")}</p>
             <dl className="setup-plan__macros">
-              {[['Protein', needs.proteinTargetGrams], ['Carbs', needs.carbsTargetGrams], ['Fat', needs.fatTargetGrams]].map(([label, grams]) => <div key={label}><dt>{label}</dt><dd>{grams}<span> g</span></dd></div>)}
+              {[['Protein', needs.proteinTargetGrams], ['Carbs', needs.carbsTargetGrams], ['Fat', needs.fatTargetGrams]].map(([label, grams]) => <div key={label}><dt>{t(String(label))}</dt><dd>{grams}<span> {t("g")}</span></dd></div>)}
             </dl>
-            <p className="setup-plan__note">{age < 18 ? 'An energy estimate for your growing years, without a weight-change adjustment.' : 'Calorie needs and weekly changes are estimates. Adjust your target in Settings as you learn what works for you.'}</p>
+            <p className="setup-plan__note">{age < 18 ? t('An energy estimate for your growing years, without a weight-change adjustment.') : t('Calorie needs and weekly changes are estimates. Adjust your target in Settings as you learn what works for you.')}</p>
           </div>
         )}
       </div>
 
       <footer className="setup-footer">
-        <button type="submit" disabled={!valid} className="setup-next">{step === 5 ? 'Show my plan' : step === 6 ? 'Start my day' : 'Next'}</button>
+        <button type="submit" disabled={!valid} className="setup-next">{step === 5 ? t('Show my plan') : step === 6 ? t('Start my day') : t('Next')}</button>
       </footer>
     </form>
   );

@@ -215,3 +215,50 @@
 .meal-scan__status { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 82px; color: var(--gold); font-size: 13px; }
 .meal-scan__error { margin: 18px 20px; padding: 15px; display: flex; gap: 10px; border: 1px solid var(--protein); border-radius: 10px; font-size: 12px; }.meal-scan__error > svg { flex-shrink: 0; color: var(--protein); }.meal-scan__error p { margin: 7px 0; color: var(--muted); line-height: 1.6; }.meal-scan__error button { color: var(--gold); min-height: 32px; text-decoration: underline; }
 .meal-scan__result { padding: 22px 20px; }.meal-scan__result h2 { font-size: 22px; font-weight: 650; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }.meal-scan__result h3 { font-size: 13px; font-weight: 600; }.meal-scan__empty { padding: 40px 20px; text-align: center; }
+
+.language-select { max-width: 62%; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 8px 0; color: var(--muted, #a89b85); font-size: 14px; cursor: pointer; }
+.language-select > svg { flex-shrink: 0; }
+.language-overlay { position: absolute; inset: 0; z-index: 110; display: flex; align-items: flex-end; justify-content: center; padding: 12px; background: #0008; animation: language-backdrop-in .18s ease both; }
+.language-panel { width: 100%; max-height: 100%; overflow-y: auto; padding: 10px 16px max(16px, env(safe-area-inset-bottom)); border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); box-shadow: 0 12px 40px #0004; animation: language-panel-in .22s cubic-bezier(.2,.8,.2,1) both; }
+.language-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.language-panel h2 { font-size: 18px; font-weight: 650; margin: 0; }
+.language-options > button { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; min-height: 58px; padding: 12px 2px; border-top: 1px solid var(--border); font-size: 17px; text-align: start; }
+.language-options > button > svg { flex-shrink: 0; color: var(--gold); visibility: hidden; }
+.language-options > button[aria-pressed="true"] { color: var(--gold); }
+.language-options > button[aria-pressed="true"] > svg { visibility: visible; }
+.language-options > button:active { background: var(--track); }
+@keyframes language-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes language-panel-in { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+::view-transition-old(root) { animation: language-backdrop-in .16s ease reverse both; }
+::view-transition-new(root) { animation: language-backdrop-in .2s ease both; }
+@media (prefers-reduced-motion: reduce) { .language-overlay, .language-panel { animation: none; } }
+.setup-language { display: flex; justify-content: flex-end; margin: -14px 0 22px; }
+.setup-language .language-select { max-width: 100%; }
+.meal-row__open, .meal-row__menu button, .settings-row, .photo-recipe__open { text-align: start; }
+.meal-row__calories { text-align: end; }
+.meal-row__menu { right: auto; inset-inline-end: 8px; }
+.detail-photo button { left: auto; inset-inline-start: 20px; }
+.detail-calories strong { margin-right: 0; margin-inline-end: 5px; }
+.detail-macro small { margin-left: 0; margin-inline-start: 2px; }
+.photo-recipe__open > svg { margin-left: 0; margin-inline-start: -7px; }
+.recipe-nutrition i { margin-right: 0; margin-inline-end: 4px; }
+.primary-command { padding: 10px 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.primary-command > svg { flex-shrink: 0; }
+.meal-segments button { padding: 6px 3px; overflow-wrap: anywhere; }
+.meal-segments legend.sr-only { width: 1px; }
+.settings-row__label, .setup-choice__copy, .week-strip button > span { overflow-wrap: anywhere; }
+.week-strip button > span { min-height: 26px; display: grid; place-items: center; }
+.macro-bars > div { min-width: 0; }
+.macro-bars > div > div { flex-wrap: wrap; gap: 4px; }
+.app-main > .overflow-y-auto > .flex.items-center.justify-between:first-child { gap: 10px; flex-wrap: wrap; }
+.app-main > .overflow-y-auto > .flex.items-center.justify-between:first-child button { min-height: 36px; height: auto; padding-block: 8px; }
+.meal-row__copy strong, .barcode-product__heading h2, .photo-recipe__summary > strong, .recipe-ingredients strong { unicode-bidi: plaintext; }
+.kalo-shell input[type="number"], .kalo-shell input[type="date"], #barcode-digits, .setup-measurement__value, .setup-pace__value { direction: ltr; unicode-bidi: isolate; }
+.appearance-switch, .app-switch { direction: ltr; }
+[dir="rtl"] .lucide-chevron-left, [dir="rtl"] .lucide-chevron-right { transform: scaleX(-1); }
+[dir="rtl"] .kalo-shell .text-left { text-align: right; }
+[dir="rtl"] .kalo-shell .text-right { text-align: left; }
+[dir="rtl"] .setup-pace__slider { background: linear-gradient(to left, #ee9512 var(--pace-progress), #33291f var(--pace-progress)); }
+/* Swipe directions stay physical: left deletes and right logs again in every language. */
+.meal-swipe__feedback { direction: ltr; }
+.meal-swipe__feedback > span { unicode-bidi: isolate; }

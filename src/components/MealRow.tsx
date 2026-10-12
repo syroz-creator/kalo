@@ -1,3 +1,4 @@
+import { t, getLocale } from '../i18n';
 import { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal, Repeat2, Trash2, Utensils } from 'lucide-react';
 import type { LoggedItem } from '../types';
@@ -29,7 +30,7 @@ export function MealRow({ item, onEdit, onRepeat, onDelete }: { item: LoggedItem
   };
   return (
     <div ref={wrapper} className={`meal-swipe${menu ? ' is-menu-open' : ''}${committed ? ' is-committed' : ''}${committed === 'delete' ? ' is-deleting' : ''}`}>
-      <div className={`meal-swipe__feedback ${offset < 0 ? 'is-delete' : 'is-repeat'}`} aria-hidden="true">{offset < 0 ? <><Trash2 size={23} /><span>{committed ? 'Deleted' : 'Delete'}</span></> : <><Repeat2 size={23} /><span>Log again</span></>}</div>
+      <div className={`meal-swipe__feedback ${offset < 0 ? 'is-delete' : 'is-repeat'}`} aria-hidden="true">{offset < 0 ? <><Trash2 size={23} /><span>{committed ? t('Deleted') : t('Delete')}</span></> : <><Repeat2 size={23} /><span>{t("Log again")}</span></>}</div>
       <div className="meal-row" style={{ transform: `translateX(${offset}px)` }}
         data-dragging={dragging || undefined}
         onPointerDown={event => {
@@ -68,12 +69,12 @@ export function MealRow({ item, onEdit, onRepeat, onDelete }: { item: LoggedItem
         }}>
         <button type="button" className="meal-row__open" disabled={!!committed} onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } onEdit(); }}>
           {item.imageUrl ? <img src={item.imageUrl} alt="" draggable={false} className="meal-row__photo" /> : <span className="meal-row__photo meal-row__placeholder"><Utensils size={24} /></span>}
-          <span className="meal-row__copy"><strong>{item.name}</strong><span className="meal-row__time">{new Date(item.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span><span className="meal-row__macros"><i className="protein-dot" />{Math.round(item.protein)}g P <i className="carbs-dot" />{Math.round(item.carbs)}g C <i className="fat-dot" />{Math.round(item.fat)}g F</span></span>
-          <span className="meal-row__calories"><strong>{item.calories.toLocaleString('en-US')}</strong><small>kcal</small></span>
+          <span className="meal-row__copy"><strong>{item.name}</strong><span className="meal-row__time">{new Date(item.createdAt).toLocaleTimeString(getLocale(), { hour: 'numeric', minute: '2-digit' })}</span><span className="meal-row__macros"><span><i className="protein-dot" /><bdi dir="ltr">{Math.round(item.protein)}{t("g P")}</bdi></span><span><i className="carbs-dot" /><bdi dir="ltr">{Math.round(item.carbs)}{t("g C")}</bdi></span><span><i className="fat-dot" /><bdi dir="ltr">{Math.round(item.fat)}{t("g F")}</bdi></span></span></span>
+          <span className="meal-row__calories"><strong>{item.calories.toLocaleString(getLocale())}</strong><small>{t("kcal")}</small></span>
         </button>
-        <button type="button" className="meal-row__more" disabled={!!committed} aria-label={`Actions for ${item.name}`} aria-expanded={menu} onClick={() => setMenu(!menu)}><MoreHorizontal size={18} /></button>
+        <button type="button" className="meal-row__more" disabled={!!committed} aria-label={t('Actions for {name}', { name: item.name })} aria-expanded={menu} onClick={() => setMenu(!menu)}><MoreHorizontal size={18} /></button>
       </div>
-      {menu && <div className="meal-row__menu"><button type="button" onClick={() => { onRepeat(); setMenu(false); }}><Repeat2 size={16} />Log again</button><button type="button" onClick={onDelete}><Trash2 size={16} />Delete</button></div>}
+      {menu && <div className="meal-row__menu"><button type="button" onClick={() => { onRepeat(); setMenu(false); }}><Repeat2 size={16} />{t("Log again")}</button><button type="button" onClick={onDelete}><Trash2 size={16} />{t("Delete")}</button></div>}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { t, getLocale } from '../i18n';
 import React, { useState } from 'react';
 import {
   Dumbbell,
@@ -75,7 +76,7 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
     e.preventDefault();
     const duration = Math.max(1, Number(durationMinutes) || 30);
     const burn = Math.max(0, Number(caloriesBurned) || 200);
-    const title = workoutTitle.trim() || `${WORKOUT_TYPES.find((t) => t.type === workoutType)?.label} Session`;
+    const title = workoutTitle.trim() || t('{type} Session', { type: t(WORKOUT_TYPES.find(choice => choice.type === workoutType)?.label ?? 'Strength') });
 
     onAddWorkout({
       date: selectedDate,
@@ -97,12 +98,10 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
-            <span>Progress & Activity</span>
+            <span>{t("Progress & Activity")}</span>
             <span className="w-2 h-2 rounded-full bg-yellow-400" />
           </h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            Workouts, daily energy burn, and net calorie balance
-          </p>
+          <p className="text-xs text-zinc-400 mt-0.5">{t("Workouts, daily energy burn, and net calorie balance")}</p>
         </div>
         <button
           type="button"
@@ -110,7 +109,7 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
           className="h-9 px-3.5 bg-yellow-400 hover:bg-yellow-300 active:scale-95 text-black font-black text-xs rounded-2xl flex items-center gap-1.5 transition-all shadow-md shadow-yellow-500/10"
         >
           <Plus className="w-4 h-4 text-black" />
-          <span>Log Workout</span>
+          <span>{t("Log Workout")}</span>
         </button>
       </div>
 
@@ -118,39 +117,34 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
       <div className="bg-[#18181B] rounded-3xl border border-[#27272A] p-4 shadow-lg space-y-3 relative overflow-hidden">
         <div className="flex items-baseline justify-between border-b border-zinc-800/80 pb-3">
           <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
-              Net Calories ({selectedDate === todayKey ? 'Today' : selectedDate})
-            </span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">{t('Net Calories ({date})', { date: selectedDate === todayKey ? t('Today') : selectedDate })}</span>
             <div className="flex items-baseline gap-1 mt-0.5">
               <span className="text-3xl font-black text-white tracking-tight">
-                {netCalories.toLocaleString()}
+                {netCalories.toLocaleString(getLocale())}
               </span>
-              <span className="text-xs font-bold text-zinc-400">kcal net</span>
+              <span className="text-xs font-bold text-zinc-400">{t("kcal net")}</span>
             </div>
           </div>
 
           <div className="text-right">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">
-              Goal
-            </span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">{t("Goal")}</span>
             <span className="text-sm font-black text-yellow-400">
-              {targetCalories.toLocaleString()} kcal
-            </span>
+              {targetCalories.toLocaleString(getLocale())} {t("kcal")}</span>
           </div>
         </div>
 
         {/* Breakdown Row */}
         <div className="grid grid-cols-2 gap-2 text-center pt-1">
           <div className="bg-[#202024] p-3 rounded-2xl border border-zinc-800">
-            <span className="text-[10px] font-bold text-zinc-400 block uppercase">Food Eaten</span>
+            <span className="text-[10px] font-bold text-zinc-400 block uppercase">{t("Food Eaten")}</span>
             <span className="text-base font-black text-white mt-0.5 block">
-              +{totalFoodCalories} <span className="text-[11px] font-medium text-zinc-500">kcal</span>
+              +{totalFoodCalories} <span className="text-[11px] font-medium text-zinc-500">{t("kcal")}</span>
             </span>
           </div>
           <div className="bg-[#202024] p-3 rounded-2xl border border-zinc-800">
-            <span className="text-[10px] font-bold text-yellow-400 block uppercase">Workouts Burned</span>
+            <span className="text-[10px] font-bold text-yellow-400 block uppercase">{t("Workouts Burned")}</span>
             <span className="text-base font-black text-yellow-400 mt-0.5 block">
-              -{totalWorkoutBurn} <span className="text-[11px] font-medium text-yellow-400/60">kcal</span>
+              -{totalWorkoutBurn} <span className="text-[11px] font-medium text-yellow-400/60">{t("kcal")}</span>
             </span>
           </div>
         </div>
@@ -160,10 +154,8 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
       <div className="bg-[#18181B] rounded-3xl border border-[#27272A] p-4 shadow-md space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-yellow-400" />
-            7-Day Calorie Flow
-          </span>
-          <span className="text-[10px] font-bold text-zinc-400">Target: {targetCalories} kcal</span>
+            <TrendingUp className="w-3.5 h-3.5 text-yellow-400" />{t("7-Day Calorie Flow")}</span>
+          <span className="text-[10px] font-bold text-zinc-400">{t("Target:")} {targetCalories} {t("kcal")}</span>
         </div>
 
         <div className="grid grid-cols-7 gap-1.5 items-end h-24 pt-2">
@@ -182,11 +174,11 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
                         : 'bg-zinc-800'
                     }`}
                     style={{ height: `${Math.max(8, heightPercent)}%` }}
-                    title={`${d.date}: ${d.food} kcal`}
+                    title={`${d.date}: ${d.food} ${t('kcal')}`}
                   />
                 </div>
                 <span className={`text-[9px] font-bold truncate ${isSelected ? 'text-yellow-400' : 'text-zinc-500'}`}>
-                  {d.label}
+                  {t(d.label)}
                 </span>
               </div>
             );
@@ -197,12 +189,8 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
       {/* Logged Workouts List */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">
-            Workouts Logged ({dayWorkouts.length})
-          </h3>
-          <span className="text-[11px] text-zinc-500 font-medium">
-            Total Burn: {totalWorkoutBurn} kcal
-          </span>
+          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400">{t('Workouts Logged ({count})', { count: dayWorkouts.length })}</h3>
+          <span className="text-[11px] text-zinc-500 font-medium">{t("Total Burn:")} {totalWorkoutBurn} {t("kcal")}</span>
         </div>
 
         {dayWorkouts.length > 0 ? (
@@ -224,10 +212,9 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
                     <div className="text-[11px] text-zinc-400 flex items-center gap-2 mt-0.5">
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3 text-zinc-500" />
-                        {w.durationMinutes} min
-                      </span>
+                        {w.durationMinutes} {t("min")}</span>
                       <span>·</span>
-                      <span className="capitalize">{w.type}</span>
+                      <span>{t(WORKOUT_TYPES.find(choice => choice.type === w.type)?.label ?? w.type)}</span>
                     </div>
                   </div>
                 </div>
@@ -235,14 +222,13 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="text-right">
                     <span className="text-sm font-black text-yellow-400 block">
-                      -{w.caloriesBurned} kcal
-                    </span>
+                      -{w.caloriesBurned} {t("kcal")}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => onDeleteWorkout(w.id)}
                     className="w-8 h-8 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-zinc-800 flex items-center justify-center transition-colors"
-                    aria-label="Delete workout"
+                    aria-label={t("Delete workout")}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -256,19 +242,15 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
               <Dumbbell className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">No workouts logged yet</p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Record strength, running, walking, or sports to track active calorie burn.
-              </p>
+              <p className="text-sm font-bold text-white">{t("No workouts logged yet")}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{t("Record strength, running, walking, or sports to track active calorie burn.")}</p>
             </div>
             <button
               type="button"
               onClick={() => setIsAddModalOpen(true)}
               className="mt-2 px-4 py-2 bg-yellow-400 text-black font-black text-xs rounded-xl hover:bg-yellow-300 transition-all inline-flex items-center gap-1.5"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Add Workout
-            </button>
+              <Plus className="w-3.5 h-3.5" />{t("Add Workout")}</button>
           </div>
         )}
       </div>
@@ -283,11 +265,12 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 <Dumbbell className="w-4 h-4 text-yellow-400" />
-                <span>Log Workout</span>
+                <span>{t("Log Workout")}</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
+                aria-label={t('Close workout')}
                 className="w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
@@ -297,40 +280,40 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
             <form onSubmit={handleSaveWorkout} className="space-y-3.5">
               {/* Type Switcher */}
               <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-1.5">Workout Type</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1.5">{t("Workout Type")}</label>
                 <div className="grid grid-cols-4 gap-1 p-1 bg-zinc-900 rounded-2xl border border-zinc-800">
-                  {WORKOUT_TYPES.map((t) => (
+                  {WORKOUT_TYPES.map((typeChoice) => (
                     <button
-                      key={t.type}
+                      key={typeChoice.type}
                       type="button"
-                      onClick={() => setWorkoutType(t.type)}
+                      onClick={() => setWorkoutType(typeChoice.type)}
                       className={`py-2 text-[11px] font-bold rounded-xl transition-all flex flex-col items-center gap-1 ${
-                        workoutType === t.type
+                        workoutType === typeChoice.type
                           ? 'bg-yellow-400 text-black shadow-md font-black'
                           : 'text-zinc-400 hover:text-white'
                       }`}
                     >
-                      {t.icon}
-                      <span>{t.label}</span>
+                      {typeChoice.icon}
+                      <span>{t(String(typeChoice.label))}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-1">Workout Name</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">{t("Workout Name")}</label>
                 <input
                   type="text"
                   value={workoutTitle}
                   onChange={(e) => setWorkoutTitle(e.target.value)}
-                  placeholder="e.g. Upper Body Push, 5k Outdoor Run"
+                  placeholder={t("e.g. Upper Body Push, 5k Outdoor Run")}
                   className="w-full px-3.5 py-2.5 text-sm font-semibold bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-yellow-400"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Duration (min)</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">{t("Duration (min)")}</label>
                   <input
                     type="number"
                     min="1"
@@ -341,7 +324,7 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-zinc-300 mb-1">Calories Burned</label>
+                  <label className="block text-xs font-bold text-zinc-300 mb-1">{t("Calories Burned")}</label>
                   <input
                     type="number"
                     min="0"
@@ -354,12 +337,12 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-zinc-300 mb-1">Notes (optional)</label>
+                <label className="block text-xs font-bold text-zinc-300 mb-1">{t("Notes (optional)")}</label>
                 <input
                   type="text"
                   value={workoutNotes}
                   onChange={(e) => setWorkoutNotes(e.target.value)}
-                  placeholder="e.g. Felt energetic, bench pressed 80kg"
+                  placeholder={t("e.g. Felt energetic, bench pressed 80kg")}
                   className="w-full px-3 py-2 text-xs bg-zinc-900 border border-zinc-700 rounded-xl text-white focus:outline-none focus:border-yellow-400"
                 />
               </div>
@@ -369,7 +352,7 @@ export const ProgressTab: React.FC<ProgressTabProps> = ({
                 className="w-full h-12 bg-yellow-400 hover:bg-yellow-300 active:scale-[0.98] text-black font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-yellow-500/10 mt-2"
               >
                 <Check className="w-4 h-4 text-black" />
-                <span>Save Workout</span>
+                <span>{t("Save Workout")}</span>
               </button>
             </form>
           </div>

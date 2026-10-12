@@ -4,6 +4,7 @@ import { prepareMealImage } from './mealImage';
 import { withRequestDeadline } from './requestDeadline';
 import { getMealDescription } from '../utils/mealAnalysis';
 import { UserFacingError } from '../utils/userFacingError';
+import { getLanguage } from '../i18n';
 
 const storageKey = 'kalo-gemini-api-key';
 export const scanTimeoutMs = 45000;
@@ -86,11 +87,12 @@ async function analyzeMealInput(input: { imageUrl: string; portionDetails?: stri
   if (!key) throw new UserFacingError('Add your Gemini API key in Settings > Gemini API key before estimating a meal.');
   if (connection?.key !== key) connection = { key, analyze: createMealAnalyzer(createClient(key)) };
   const activeConnection = connection;
+  const language = getLanguage();
   try {
     return await withRequestDeadline(async requestSignal => {
       const image = 'imageUrl' in input ? await prepareMealImage(input.imageUrl, requestSignal) : undefined;
       requestSignal.throwIfAborted();
-      return activeConnection.analyze(image, 'description' in input ? input.description : input.portionDetails, requestSignal);
+      return activeConnection.analyze(image, 'description' in input ? input.description : input.portionDetails, requestSignal, language);
     }, scanTimeoutMs, signal);
   }
   catch (error) {

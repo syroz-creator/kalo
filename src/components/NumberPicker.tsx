@@ -38,7 +38,7 @@ export function NumberPicker({ label, min, max, step = 1, value, onChange, verti
   const selectIndex = (next: number) => onChange(Number((min + Math.max(0, Math.min(count - 1, next)) * step).toFixed(2)));
 
   return (
-    <div className={`number-picker ${vertical ? 'number-picker--vertical' : 'number-picker--ruler'}`}>
+    <div dir="ltr" className={`number-picker ${vertical ? 'number-picker--vertical' : 'number-picker--ruler'}`}>
       <div
         ref={ref}
         className="number-picker__scroll"

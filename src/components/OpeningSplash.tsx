@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useEffect } from 'react';
 
 export function OpeningSplash({ onComplete }: { onComplete: () => void }) {
@@ -9,10 +10,10 @@ export function OpeningSplash({ onComplete }: { onComplete: () => void }) {
   }, [onComplete]);
 
   return (
-    <div className="opening-splash" role="status" aria-label="Opening Kalo" onAnimationEnd={event => {
+    <div className="opening-splash" role="status" aria-label={t("Opening Kalo")} onAnimationEnd={event => {
       if (event.target === event.currentTarget && event.animationName === 'splash-away') onComplete();
     }}>
-      <span className="opening-splash__wordmark" aria-hidden="true">Kalo</span>
+      <span className="opening-splash__wordmark" aria-hidden="true">{t("Kalo")}</span>
     </div>
   );
 }

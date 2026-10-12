@@ -64,7 +64,7 @@ export function createMealAnalyzer(ai: GoogleGenAI, configuredModel?: string) {
     return selected;
   };
 
-  return async (image: { mimeType: string; data: string } | undefined, userNotes?: string, signal?: AbortSignal) => {
+  return async (image: { mimeType: string; data: string } | undefined, userNotes?: string, signal?: AbortSignal, outputLanguage: 'en' | 'ar' | 'he' = 'en') => {
     signal?.throwIfAborted();
     const description = image ? userNotes : getMealDescription(userNotes ?? '');
     const generate = (name: string) => withRequestDeadline(requestSignal => ai.models.generateContent({
@@ -75,6 +75,7 @@ export function createMealAnalyzer(ai: GoogleGenAI, configuredModel?: string) {
         ...(description ? [{ text: `User's description of the meal: ${description}` }] : []),
       ] }],
       config: {
+        systemInstruction: `Write food names, readable portions, notes, and reference tips in ${outputLanguage === 'ar' ? 'natural conversational Palestinian Arabic (not formal Modern Standard Arabic)' : outputLanguage === 'he' ? 'Hebrew' : 'English'}. Keep brand names unchanged, JSON field names and portionUnit enum values in English, and nutrition values numeric.`,
         responseMimeType: 'application/json', responseJsonSchema, temperature: 0.2,
         thinkingConfig: ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash'].includes(name)
           ? { thinkingLevel: ThinkingLevel.MINIMAL }
