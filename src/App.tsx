@@ -17,7 +17,6 @@ import { OpeningSplash } from './components/OpeningSplash';
 import { captureMealPhoto, isNativeApp, setNativeAppearance } from './services/native';
 import './app.css';
 import { getUserErrorMessage } from './utils/userFacingError';
-import { BarcodeMealModal } from './components/BarcodeMealModal';
 import { GoalCelebration } from './components/GoalCelebration';
 import { crossesDailyTarget } from './utils/goalCelebration';
 import { playSound, setSoundEnabled, unlockSound } from './services/sounds';
@@ -44,7 +43,6 @@ export default function App() {
   const finishOpening = useCallback(() => setOpening(false), []);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => !userProfile.hasCompletedOnboarding);
   const [isAiSnapModalOpen, setIsAiSnapModalOpen] = useState(false);
-  const [barcodeMeal, setBarcodeMeal] = useState<MealType | null>(null);
   const [sounds, setSounds] = useState(() => preference('kalo-sounds') !== 'false');
   const [celebrating, setCelebrating] = useState(false);
   const finishCelebration = useCallback(() => setCelebrating(false), []);
@@ -56,7 +54,7 @@ export default function App() {
   const directCameraInputRef = useRef<HTMLInputElement>(null);
   const nativeCameraPending = useRef(false);
   const scanOpenRef = useRef(false);
-  scanOpenRef.current = isAiSnapModalOpen || !!barcodeMeal;
+  scanOpenRef.current = isAiSnapModalOpen;
   const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const showToast = (message: string, undo?: () => void) => {
@@ -199,11 +197,11 @@ export default function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const tabs = [{ key: 'today', label: 'Today', icon: Home }, { key: 'progress', label: 'Progress', icon: TrendingUp }, { key: 'recipes', label: 'Recipes', icon: BookOpen }, { key: 'settings', label: 'Settings', icon: UserRound }] as const;
-  const dialogOpen = !!manualMeal || !!editingItem || !!barcodeMeal || isAiSnapModalOpen || isOnboardingOpen;
+  const dialogOpen = !!manualMeal || !!editingItem || isAiSnapModalOpen || isOnboardingOpen;
   return <div className="app-root" onPointerDownCapture={unlockSound} onPointerUpCapture={unlockSound} onClickCapture={unlockSound} onKeyDownCapture={unlockSound}><div className="kalo-shell" data-theme={theme}>
     <div className="app-surface" inert={opening || dialogOpen}>
       <main className="app-main">
-        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} cupsDrank={waterLogs[selectedDate] ?? 0} onUpdateWaterCups={cups => setWaterLogs(logs => ({ ...logs, [selectedDate]: Math.max(0, Math.min(10, cups)) }))} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onDescribeMeal={openDescription} onBarcodeMeal={setBarcodeMeal} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
+        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} cupsDrank={waterLogs[selectedDate] ?? 0} onUpdateWaterCups={cups => setWaterLogs(logs => ({ ...logs, [selectedDate]: Math.max(0, Math.min(10, cups)) }))} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
         {activePage === 'progress' && <ProgressTab selectedDate={selectedDate} loggedItems={loggedItems} workouts={workouts} targetCalories={energyNeeds.tdee} onAddWorkout={workout => { setWorkouts(items => [{ ...workout, id: id(), createdAt: Date.now() }, ...items]); showToast('Workout logged'); }} onDeleteWorkout={itemId => setWorkouts(items => items.filter(item => item.id !== itemId))} />}
         {activePage === 'recipes' && <RecipesTab recipes={recipes} onLogRecipeAsMeal={logRecipe} onRemoveRecipe={foodId => updateRecipes(items => items.filter(item => item.foodId !== foodId))} onOpenCamera={openCamera} />}
         {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { if (setLoggedItems(() => [])) { setWorkouts([]); showToast('History cleared'); } }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} sounds={sounds} onSoundsChange={setSounds} onExport={exportData} recoverableMeals={loadRecoverableMeals(loggedItems)} onRecoverMeal={item => { const saved = setLoggedItems(items => items.some(meal => meal.id === item.id) ? items : [item, ...items]); if (saved) showToast('Meal restored to its original day'); return saved; }} />}
@@ -215,7 +213,6 @@ export default function App() {
     <div inert={opening} className="app-dialog-layer">
       <OnboardingModal isOpen={isOnboardingOpen} initialProfile={userProfile} onComplete={profile => { setUserProfile(profile); setIsOnboardingOpen(false); showToast('Your daily target is set.'); }} />
       {manualMeal && <ManualMealModal meal={manualMeal} initialMode={manualMode} date={selectedDate} onClose={() => setManualMeal(null)} onLog={async item => !!(await addMeal(item))} />}
-      {barcodeMeal && <BarcodeMealModal date={selectedDate} meal={barcodeMeal} onClose={() => setBarcodeMeal(null)} onLog={async item => !!(await addMeal(item))} onManual={() => { setManualMode('manual'); setManualMeal(barcodeMeal); setBarcodeMeal(null); }} />}
       <EditLoggedModal isOpen={!!editingItem} item={editingItem} onClose={() => setEditingItem(null)} onUpdate={(itemId, updates) => { if (!setLoggedItems(items => items.map(item => item.id === itemId ? { ...item, ...updates } : item))) return false; updateRecipes(items => items.map(item => item.foodId === editingItem?.foodId ? { ...item, ...updates } : item)); showToast('Meal updated'); return true; }} onDelete={deleteMeal} />
       {isAiSnapModalOpen && <section className="scanner-dialog" role="dialog" aria-modal="true" aria-label={t("Meal photo")}><header><h2>{t("Meal photo")}</h2><button type="button" className="icon-command" aria-label={t("Close meal photo")} onClick={() => setIsAiSnapModalOpen(false)}><X size={22} /></button></header><div className="scanner-scroll"><AiMealScanner targetMeal={targetMeal} initialImage={snappedInitialImage} onChangeTargetMeal={setTargetMeal} onLogMealResult={logScan} onClose={() => setIsAiSnapModalOpen(false)} onNativeCameraPendingChange={pending => { nativeCameraPending.current = pending; }} onDescribeMeal={() => openDescription(targetMeal)} isModal /></div></section>}
     </div>

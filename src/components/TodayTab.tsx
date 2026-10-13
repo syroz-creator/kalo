@@ -1,5 +1,5 @@
 import { t, getLocale } from '../i18n';
-import { CalendarDays, Flame, Minus, Plus, ScanBarcode, Sparkles, SquarePen, UtensilsCrossed } from 'lucide-react';
+import { CalendarDays, Flame, Minus, Plus, SquarePen, UtensilsCrossed } from 'lucide-react';
 import type { DailyEnergyNeeds, LoggedItem, MealType } from '../types';
 import { addDaysToKey, getTodayKey, parseDateKey } from '../utils/date';
 import { MealRow } from './MealRow';
@@ -12,8 +12,6 @@ interface TodayTabProps {
   cupsDrank: number;
   onUpdateWaterCups: (cups: number) => void;
   onOpenLogModal: (meal: MealType) => void;
-  onDescribeMeal: (meal: MealType) => void;
-  onBarcodeMeal: (meal: MealType) => void;
   onEditItem: (item: LoggedItem) => void;
   onRepeatItem: (item: LoggedItem) => void;
   onDeleteItem: (id: string) => boolean;
@@ -67,8 +65,6 @@ export function TodayTab(props: TodayTabProps) {
           if (!group.length) return null;
           return <div className="meal-group" key={meal}><div className="meal-group__heading"><h3><UtensilsCrossed size={16} />{t(meal.charAt(0).toUpperCase() + meal.slice(1))}</h3><span>{group.reduce((sum, item) => sum + item.calories, 0).toLocaleString(getLocale())} {t("kcal")}</span></div>{group.map(item => <MealRow key={item.id} item={item} onEdit={() => props.onEditItem(item)} onRepeat={() => props.onRepeatItem(item)} onDelete={() => props.onDeleteItem(item.id)} />)}</div>;
         })}
-        <button type="button" className="manual-log" onClick={() => props.onBarcodeMeal('snacks')}><ScanBarcode size={21} />{t("Scan barcode")}</button>
-        <button type="button" className="manual-log" onClick={() => props.onDescribeMeal('lunch')}><Sparkles size={21} />{t("Describe a meal")}</button>
         <button type="button" className="manual-log" onClick={() => props.onOpenLogModal('lunch')}><SquarePen size={21} />{t("Log manually")}</button>
       </section>
     </div>
