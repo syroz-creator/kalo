@@ -3,7 +3,7 @@ import { getMealDescription, normalizeMealAnalysis } from '../utils/mealAnalysis
 import { withRequestDeadline } from './requestDeadline';
 import { UserFacingError } from '../utils/userFacingError';
 
-export const mealAttemptTimeoutMs = 18000;
+export const mealAttemptTimeoutMs = 12000;
 
 const number = { type: 'number', minimum: 0 };
 const responseJsonSchema = {

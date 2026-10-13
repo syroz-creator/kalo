@@ -4,7 +4,7 @@ import { UserFacingError } from '../utils/userFacingError';
 export async function prepareMealImage(imageUrl: string, signal: AbortSignal) {
   signal.throwIfAborted();
   const image = getMealImage(imageUrl);
-  if (image.data.length <= 512_000) return image;
+  if (image.data.length <= 384_000) return image;
 
   const photo = await new Promise<HTMLImageElement>((resolve, reject) => {
     const element = new Image();
@@ -19,7 +19,7 @@ export async function prepareMealImage(imageUrl: string, signal: AbortSignal) {
     element.src = `data:${image.mimeType};base64,${image.data}`;
   });
   signal.throwIfAborted();
-  const scale = Math.min(1, 1600 / Math.max(photo.naturalWidth, photo.naturalHeight));
+  const scale = Math.min(1, 1280 / Math.max(photo.naturalWidth, photo.naturalHeight));
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(photo.naturalWidth * scale));
   canvas.height = Math.max(1, Math.round(photo.naturalHeight * scale));
@@ -28,5 +28,5 @@ export async function prepareMealImage(imageUrl: string, signal: AbortSignal) {
   context.fillStyle = '#ffffff';
   context.fillRect(0, 0, canvas.width, canvas.height);
   context.drawImage(photo, 0, 0, canvas.width, canvas.height);
-  return getMealImage(canvas.toDataURL('image/jpeg', 0.82));
+  return getMealImage(canvas.toDataURL('image/jpeg', 0.76));
 }

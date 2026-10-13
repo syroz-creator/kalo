@@ -7,7 +7,7 @@ import { UserFacingError } from '../utils/userFacingError';
 import { getLanguage } from '../i18n';
 
 const storageKey = 'kalo-gemini-api-key';
-export const scanTimeoutMs = 45000;
+export const scanTimeoutMs = 36000;
 let connection: { key: string; analyze: ReturnType<typeof createMealAnalyzer> } | undefined;
 
 export function getGeminiKey() {

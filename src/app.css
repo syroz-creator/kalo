@@ -208,11 +208,30 @@
 @keyframes goal-arrive { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
 @keyframes goal-burst { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 12% { opacity: 1; } 45% { opacity: 1; transform: translate(var(--x), var(--y)) rotate(var(--turn)); } 100% { opacity: 0; transform: translate(var(--x), calc(var(--y) + 240px)) rotate(var(--turn)); } }
 @keyframes goal-fade { to { opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .goal-confetti { display: none; }.goal-celebration__message { animation: none; }.meal-swipe.is-deleting { transition: none; } }
+@keyframes calorie-sheen { to { transform: translateX(100%); } }
+@keyframes calorie-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+@keyframes calorie-ring { from { opacity: .75; transform: scale(.72); } to { opacity: 0; transform: scale(1.5); } }
+@keyframes calorie-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@media (prefers-reduced-motion: reduce) { .goal-confetti { display: none; }.goal-celebration__message, .meal-scan__status--animated::before, .meal-scan__pulse, .meal-scan__pulse::before, .meal-scan__pulse::after, .meal-scan__pulse span { animation: none; }.meal-swipe.is-deleting { transition: none; } }
 .recipe-log { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; align-items: end; }.recipe-log .app-field { margin: 0; }.recipe-log .primary-command { font-size: 13px; min-height: 45px; border-radius: 10px; }
 .meal-scan { padding-bottom: max(22px, env(safe-area-inset-bottom)); }
 .meal-scan__photo { position: relative; }.meal-scan__photo img { display: block; width: 100%; max-height: 360px; object-fit: contain; background: var(--surface); }.meal-scan__photo > button { position: absolute; right: 14px; top: 14px; display: flex; align-items: center; gap: 6px; padding: 9px 12px; border-radius: 8px; background: #15120dcc; color: white; font-size: 12px; }
 .meal-scan__status { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 82px; color: var(--gold); font-size: 13px; }
+.meal-scan__status--animated { position: relative; flex-direction: column; gap: 12px; overflow: hidden; min-height: 156px; padding: 18px 62px; border-block: 1px solid var(--border); background: radial-gradient(circle at 50% 8%, #f9bc3521, transparent 42%), var(--surface); text-align: center; }
+.meal-scan__status--animated::before { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 25%, #ffffff13 48%, transparent 72%); transform: translateX(-100%); animation: calorie-sheen 1.7s linear infinite; }
+.meal-scan__status--animated > * { position: relative; z-index: 1; }
+.meal-scan__pulse { position: relative; width: 92px; height: 92px; display: grid; place-items: center; border: 1px solid #f9bc3560; border-radius: 50%; background: #f9bc3514; color: var(--gold); animation: calorie-breathe 1.65s ease-in-out infinite; }
+.meal-scan__pulse::before, .meal-scan__pulse::after { content: ""; position: absolute; inset: 12px; border: 1px solid #f9bc354a; border-radius: inherit; animation: calorie-ring 1.9s ease-out infinite; }
+.meal-scan__pulse::after { animation-delay: .65s; }
+.meal-scan__pulse span { position: absolute; min-width: 34px; padding: 4px 6px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-size: 11px; font-variant-numeric: tabular-nums; box-shadow: 0 6px 18px #0002; animation: calorie-float 2.4s ease-in-out infinite; }
+.meal-scan__pulse span:nth-child(2) { left: -10px; top: 18px; }
+.meal-scan__pulse span:nth-child(3) { right: -18px; top: 39px; animation-delay: .35s; }
+.meal-scan__pulse span:nth-child(4) { left: 28px; bottom: -12px; animation-delay: .7s; }
+.meal-scan__status-copy { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+.meal-scan__status-copy > svg { margin-bottom: 2px; }
+.meal-scan__status-copy > span { color: var(--text); font-size: 15px; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
+.meal-scan__status-copy > small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.meal-scan__status--animated > .icon-command { position: absolute; right: 14px; top: 14px; }
 .meal-scan__error { margin: 18px 20px; padding: 15px; display: flex; gap: 10px; border: 1px solid var(--protein); border-radius: 10px; font-size: 12px; }.meal-scan__error > svg { flex-shrink: 0; color: var(--protein); }.meal-scan__error p { margin: 7px 0; color: var(--muted); line-height: 1.6; }.meal-scan__error button { color: var(--gold); min-height: 32px; text-decoration: underline; }
 .meal-scan__result { padding: 22px 20px; }.meal-scan__result h2 { font-size: 22px; font-weight: 650; line-height: 1.35; text-align: center; overflow-wrap: anywhere; }.meal-scan__result h3 { font-size: 13px; font-weight: 600; }.meal-scan__empty { padding: 40px 20px; text-align: center; }
 

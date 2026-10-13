@@ -19,6 +19,14 @@ interface AiMealScannerProps {
   onDescribeMeal?: () => void;
 }
 const fields = ['calories', 'protein', 'carbs', 'fat'] as const;
+const scanMessages = [
+  'Counting your calories...',
+  'عم نعدّ سعراتك...',
+  'סופרים את הקלוריות...',
+  'Contando tus calorías...',
+  'Calcul des calories...',
+  'Kalorien werden gezählt...',
+];
 
 export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, onLogMealResult, onClose, onNativeCameraPendingChange, onDescribeMeal }: AiMealScannerProps) {
   const [meal, setMeal] = useState(targetMeal);
@@ -27,6 +35,7 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
   const [editedItems, setEditedItems] = useState<AnalyzedFoodItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [scanMessageIndex, setScanMessageIndex] = useState(0);
   const [error, setError] = useState('');
   const errorMessage = useRef<HTMLDivElement>(null);
   const [portionDetails, setPortionDetails] = useState('');
@@ -52,6 +61,14 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
   }, []);
   useEffect(() => { setMeal(targetMeal); }, [targetMeal]);
   useEffect(() => { if (error) errorMessage.current?.scrollIntoView({ block: 'nearest' }); }, [error]);
+  useEffect(() => {
+    if (!analyzing) {
+      setScanMessageIndex(0);
+      return;
+    }
+    const timer = window.setInterval(() => setScanMessageIndex(index => (index + 1) % scanMessages.length), 1200);
+    return () => window.clearInterval(timer);
+  }, [analyzing]);
   useEffect(() => {
     const input = camera.current;
     const cancel = () => onNativeCameraPendingChange?.(false);
@@ -100,7 +117,11 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     <input ref={camera} type="file" accept="image/*" capture="environment" onChange={readPhoto} aria-label={t("Retake meal photo")} hidden />
     <input ref={library} type="file" accept="image/*" onChange={readPhoto} aria-label={t("Choose meal photo")} hidden />
     {photo && <div className="meal-scan__photo"><img src={photo} alt={t("Meal preview")} />{!analyzing && <button type="button" onClick={takePhoto}><RefreshCw size={15} />{t("Retake")}</button>}</div>}
-    {analyzing && <div className="meal-scan__status" role="status"><Loader2 size={20} className="animate-spin" /><span>{t("Scanning your meal...")}</span><button type="button" className="icon-command" aria-label={t("Cancel scan")} title={t("Cancel scan")} onClick={cancelScan}><X size={20} /></button></div>}
+    {analyzing && <div className="meal-scan__status meal-scan__status--animated" role="status" aria-live="polite">
+      <div className="meal-scan__pulse" aria-hidden="true"><Sparkles size={18} /><span>120</span><span>245</span><span>390</span></div>
+      <div className="meal-scan__status-copy"><Loader2 size={20} className="animate-spin" /><span>{scanMessages[scanMessageIndex]}</span><small>{t("Scanning your meal...")}</small></div>
+      <button type="button" className="icon-command" aria-label={t("Cancel scan")} title={t("Cancel scan")} onClick={cancelScan}><X size={20} /></button>
+    </div>}
     {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><div><strong>{t("Could not analyze photo")}</strong><p>{t(String(error))}</p><div className="meal-scan__recovery">{photo && <button type="button" onClick={() => void analyze(photo, portionDetails)}>{t("Try again")}</button>}{onDescribeMeal && <button type="button" onClick={onDescribeMeal}>{t("Describe instead")}</button>}</div></div></div>}
     {!photo && <div className="meal-scan__empty"><button type="button" className="primary-command" onClick={takePhoto}><Camera size={19} />{t("Take a photo")}</button><button type="button" className="text-back" onClick={() => library.current?.click()}><Upload size={18} />{t("Photo library")}</button></div>}
     {result && <div className="meal-scan__result">

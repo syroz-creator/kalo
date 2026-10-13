@@ -1,11 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#ffd12f"/>
-  <circle cx="256" cy="256" r="126" fill="#fffbed" stroke="#191810" stroke-width="14"/>
-  <circle cx="256" cy="256" r="97" fill="none" stroke="#191810" stroke-width="6"/>
-  <path d="M84 144v51c0 20 12 31 27 31s27-11 27-31v-51m-27 0v231" fill="none" stroke="#191810" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
-  <ellipse cx="408" cy="177" rx="25" ry="39" fill="#191810"/>
-  <path d="M408 205v170" stroke="#191810" stroke-width="16" stroke-linecap="round"/>
-  <circle cx="246" cy="270" r="43" fill="#f4a417"/>
-  <path d="M270 233c-3-34 16-55 53-57 5 36-14 59-53 57Z" fill="#477849"/>
-  <path d="m269 238 29-32" fill="none" stroke="#191810" stroke-width="6" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="gold" x1="120" x2="392" y1="80" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd95a"/>
+      <stop offset=".52" stop-color="#f7b42c"/>
+      <stop offset="1" stop-color="#d88413"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="290" x2="366" y1="150" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#78c47c"/>
+      <stop offset="1" stop-color="#3c7d4d"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="#15120d"/>
+  <circle cx="256" cy="256" r="178" fill="url(#gold)"/>
+  <circle cx="256" cy="256" r="139" fill="#fff7df"/>
+  <circle cx="256" cy="256" r="116" fill="none" stroke="#15120d" stroke-width="10" opacity=".92"/>
+  <path d="M183 339V173h38v64l74-64h53l-86 74 92 92h-56l-77-78v78h-38Z" fill="#15120d"/>
+  <path d="M328 170c25-27 60-31 98-11-8 43-35 68-82 75-15-25-20-45-16-64Z" fill="url(#leaf)"/>
+  <path d="M336 214c19-20 41-35 66-46" fill="none" stroke="#15120d" stroke-width="9" stroke-linecap="round"/>
 </svg>
