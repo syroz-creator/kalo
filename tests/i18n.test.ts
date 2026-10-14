@@ -47,7 +47,7 @@ test('reachable screens have no untranslated static JSX or missing catalog entri
 });
 
 test('all friendly service and storage errors are translated', () => {
-  const paths = ['src/services/mealApi.ts', 'src/services/mealAnalyzer.ts', 'src/services/barcodeFood.ts', 'src/services/barcodeReader.ts', 'src/services/mealImage.ts', 'src/services/native.ts', 'src/services/storage.ts', 'src/utils/useMealHistory.ts', 'src/utils/mealAnalysis.ts'];
+  const paths = ['src/services/mealApi.ts', 'src/services/mealAnalyzer.ts', 'src/services/contact.ts', 'src/services/barcodeFood.ts', 'src/services/barcodeReader.ts', 'src/services/mealImage.ts', 'src/services/native.ts', 'src/services/storage.ts', 'src/utils/useMealHistory.ts', 'src/utils/mealAnalysis.ts'];
   function check(node: any) {
     if (node?.type === 'Literal' && typeof node.value === 'string' && node.value) assert.ok(Object.hasOwn(catalog, node.value), `missing error: ${node.value}`);
     else if (node?.type === 'ConditionalExpression') { check(node.consequent); check(node.alternate); }

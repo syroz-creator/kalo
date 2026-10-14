@@ -7,19 +7,21 @@ import { GoogleGenAI } from '@google/genai';
 import { createMealAnalyzer } from './server/mealAnalysis';
 import { getMealImage } from './src/utils/mealAnalysis';
 import { getUserErrorMessage } from './src/utils/userFacingError';
+import { createContactRouter, type ContactOptions } from './server/contact';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export function createApp(options: { apiKey?: string; model?: string; client?: GoogleGenAI } = {}) {
+export function createApp(options: { apiKey?: string; model?: string; client?: GoogleGenAI; contact?: ContactOptions } = {}) {
   const app = express();
   const apiKey = options.apiKey ?? process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY;
   const hasKey = !!apiKey?.trim() && apiKey !== 'MY_GEMINI_API_KEY';
   const ai = options.client ?? (hasKey ? new GoogleGenAI({ apiKey, httpOptions: { timeout: 60000 } }) : null);
   const analyzeMeal = ai ? createMealAnalyzer(ai, options.model ?? process.env.GEMINI_MODEL) : null;
 
+  app.use('/api/contact', createContactRouter(options.contact));
   app.use(express.json({ limit: '20mb' }));
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', hasGeminiKey: hasKey });

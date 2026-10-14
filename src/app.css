@@ -124,6 +124,9 @@
 .contact-message textarea { display: block; width: 100%; min-height: 130px; resize: vertical; border: 0; outline: none; background: transparent; color: var(--text); line-height: 1.55; }
 .contact-message__count { display: block; margin-top: 12px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; text-align: start; }
 .contact-sheet__notice { margin: 0 0 14px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.contact-sheet__notice--error { color: var(--protein); }
+.contact-sheet__notice--success { display: flex; align-items: center; gap: 8px; color: var(--gold); }
+.contact-sheet__notice--success > svg { flex-shrink: 0; }
 .contact-send { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px; padding: 12px 16px; border-radius: 25px; background: var(--text); color: var(--bg); font-size: 16px; font-weight: 650; }
 .contact-cancel { display: block; width: 100%; min-height: 46px; margin-top: 8px; color: var(--muted); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .contact-overlay, .contact-sheet { animation: none; } }
