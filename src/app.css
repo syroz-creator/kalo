@@ -103,6 +103,30 @@
 .settings-coming { font-size: 9px; color: var(--muted); background: var(--track); border-radius: 7px; padding: 5px 6px; }
 .is-unavailable { opacity: .6; }
 .settings-note { color: var(--muted); font-size: 11px; line-height: 1.7; margin: 12px 5px 18px; }
+.contact-overlay { position: absolute; inset: 0; z-index: 110; display: flex; align-items: flex-end; justify-content: center; padding-top: max(20px, env(safe-area-inset-top)); background: #0005; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: language-backdrop-in .18s ease both; }
+.contact-sheet { width: 100%; max-height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 20px max(20px, env(safe-area-inset-bottom)); border-top: 1px solid var(--border); border-radius: 26px 26px 0 0; background: var(--surface); color: var(--text); animation: language-panel-in .22s ease both; }
+.contact-sheet__handle { width: 36px; height: 4px; margin: 0 auto 20px; border-radius: 4px; background: var(--border); }
+.contact-sheet h2 { margin: 0; font-size: 23px; font-weight: 700; line-height: 1.3; }
+.contact-sheet__intro { margin: 8px 0 22px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.contact-categories { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; padding: 0; border: 0; margin: 0 0 16px; }
+.contact-categories label { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 48px; padding: 10px 8px; border: 1px solid var(--border); border-radius: 25px; background: color-mix(in srgb, var(--surface) 96%, var(--text)); color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; }
+.contact-categories label > svg { flex-shrink: 0; }
+.contact-categories label > span { overflow-wrap: anywhere; }
+.contact-categories .is-selected { background: var(--text); border-color: var(--text); color: var(--bg); }
+.contact-categories label:has(:focus-visible) { outline: 2px solid var(--gold); outline-offset: 3px; }
+.contact-email { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 14px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 25px; background: color-mix(in srgb, var(--surface) 96%, var(--text)); color: var(--muted); }
+.contact-email > svg { flex-shrink: 0; }
+.contact-email input { width: 100%; min-width: 0; min-height: 48px; border: 0; outline: none; background: transparent; color: var(--text); direction: ltr; text-align: start; }
+.contact-email input:placeholder-shown { direction: inherit; }
+.contact-email:has(:focus-visible), .contact-message:has(:focus-visible) { outline: 2px solid var(--gold); outline-offset: 3px; }
+.contact-email input::placeholder, .contact-message textarea::placeholder { color: var(--muted); opacity: 1; }
+.contact-message { padding: 14px; margin-bottom: 14px; border: 1px solid var(--border); border-radius: 20px; background: color-mix(in srgb, var(--surface) 96%, var(--text)); }
+.contact-message textarea { display: block; width: 100%; min-height: 130px; resize: vertical; border: 0; outline: none; background: transparent; color: var(--text); line-height: 1.55; }
+.contact-message__count { display: block; margin-top: 12px; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; text-align: start; }
+.contact-sheet__notice { margin: 0 0 14px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.contact-send { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px; padding: 12px 16px; border-radius: 25px; background: var(--text); color: var(--bg); font-size: 16px; font-weight: 650; }
+.contact-cancel { display: block; width: 100%; min-height: 46px; margin-top: 8px; color: var(--muted); font-size: 14px; }
+@media (prefers-reduced-motion: reduce) { .contact-overlay, .contact-sheet { animation: none; } }
 .gemini-key-field { display: flex; align-items: center; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); margin: -10px 0 18px; }
 .gemini-key-field input { flex: 1; width: 0; min-width: 0; padding: 12px; font-size: 14px; color: var(--text); background: transparent; }
 .gemini-key-field button { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; color: var(--muted); }

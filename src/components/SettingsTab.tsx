@@ -6,6 +6,7 @@ import { calculateEnergyNeeds } from '../utils/calculator';
 import { PlanSettings } from './PlanSettings';
 import { GeminiKeySettings } from './GeminiKeySettings';
 import { LanguageSelector } from './LanguageSelector';
+import { ContactSheet } from './ContactSheet';
 
 interface SettingsTabProps {
   profile: UserProfile;
@@ -50,6 +51,7 @@ export function SettingsTab(props: SettingsTabProps) {
         <div className="settings-row"><span className="settings-symbol"><Globe size={21} /></span><span className="settings-row__label">{t("Language")}</span><LanguageSelector /></div>
         <button type="button" className="settings-row" onClick={() => setView('notifications')}><span className="settings-symbol"><Bell size={21} /></span><span className="settings-row__label">{t("Notifications")}</span><ChevronRight size={17} /></button>
         <button type="button" className="settings-row" onClick={() => setView('gemini')}><span className="settings-symbol"><KeyRound size={21} /></span><span className="settings-row__label">{t("Gemini API key")}</span><ChevronRight size={17} /></button>
+        <ContactSheet />
       </div></section>
       <section><h2>{t("Your data")}</h2><div className="settings-group">
         <button type="button" className="settings-row" onClick={props.onExport}><span className="settings-symbol"><Download size={21} /></span><span className="settings-row__label">{t("Export my data")}</span><ChevronRight size={17} /></button>
