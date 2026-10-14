@@ -1,6 +1,6 @@
 export type ContactCategory = 'complaint' | 'suggestion';
 
-export const contactEmail = import.meta.env?.VITE_CONTACT_EMAIL?.trim() || '';
+export const contactEmail = import.meta.env?.VITE_CONTACT_EMAIL?.trim() || 'uwaidaahmad@gmail.com';
 
 export function contactEmailLink(recipient: string, category: ContactCategory, message: string, replyEmail: string) {
   const subject = `Kalo ${category === 'complaint' ? 'complaint' : 'suggestion'}`;
