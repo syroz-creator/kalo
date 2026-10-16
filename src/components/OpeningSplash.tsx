@@ -5,7 +5,7 @@ export function OpeningSplash({ onComplete }: { onComplete: () => void }) {
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     // Fall back if animation events are suppressed, such as in a background tab.
-    const timer = window.setTimeout(onComplete, reducedMotion ? 3000 : 4000);
+    const timer = window.setTimeout(onComplete, reducedMotion ? 150 : 1100);
     return () => window.clearTimeout(timer);
   }, [onComplete]);
 

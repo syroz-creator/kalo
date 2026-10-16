@@ -1,6 +1,6 @@
 import { t, getLocale } from '../i18n';
 import { useState } from 'react';
-import { Bell, ChevronLeft, ChevronRight, Download, Globe, Heart, KeyRound, Moon, RotateCcw, Sun, Target, Trash2, Volume2 } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, Download, Globe, KeyRound, Moon, RotateCcw, Sun, Target, Trash2, Volume2 } from 'lucide-react';
 import type { LoggedItem, UserProfile } from '../types';
 import { calculateEnergyNeeds } from '../utils/calculator';
 import { PlanSettings } from './PlanSettings';
@@ -44,7 +44,6 @@ export function SettingsTab(props: SettingsTabProps) {
     <div className="app-scroll settings-page">
       <h1>{t("Settings")}</h1>
       <section><h2>{t("My plan")}</h2><div className="settings-group"><button type="button" className="settings-row" onClick={() => setView('plan')}><span className="settings-symbol"><Target size={21} /></span><span className="settings-row__label">{t("Goals & nutrition")}</span><span className="settings-row__value">{calories.toLocaleString(getLocale())}</span><ChevronRight size={17} /></button></div></section>
-      <section><h2>{t("Health")}</h2><div className="settings-group"><div className="settings-row is-unavailable"><span className="settings-symbol settings-symbol--health"><Heart size={21} /></span><span className="settings-row__label">{t("Apple Health")}</span><span className="settings-coming">{t("Coming soon")}</span></div></div></section>
       <section><h2>{t("App")}</h2><div className="settings-group">
         <div className="settings-row"><span className="settings-symbol"><Moon size={21} /></span><span className="settings-row__label">{t("Appearance")}</span><button type="button" role="switch" aria-label={t("Dark appearance")} aria-checked={props.theme === 'dark'} onClick={() => props.onThemeChange(props.theme === 'dark' ? 'light' : 'dark')} className="appearance-switch"><Sun size={15} /><Moon size={15} /><span className={props.theme === 'dark' ? 'is-dark' : ''}>{props.theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}</span></button></div>
         <div className="settings-row"><span className="settings-symbol"><Volume2 size={21} /></span><span className="settings-row__label">{t("Sound effects")}</span><button type="button" role="switch" aria-label={t("Sound effects")} aria-checked={props.sounds} onClick={() => props.onSoundsChange(!props.sounds)} className={`app-switch ${props.sounds ? 'is-on' : ''}`}><span /></button></div>

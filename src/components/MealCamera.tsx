@@ -107,7 +107,7 @@ export function MealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingC
     <input ref={cameraInput} type="file" accept="image/*" capture="environment" onChange={readPhoto} aria-label={t('Photograph meal')} hidden />
     <input ref={galleryInput} type="file" accept="image/*" onChange={readPhoto} aria-label={t('Choose meal photo')} hidden />
     <footer className="meal-camera__footer">
-      <div className="meal-camera__tip">{t('Keep a hand or spoon in frame for a portion reference.')}</div>
+      <div className="meal-camera__tip">{t('A clear photo helps us estimate your portion.')}</div>
       <div className="meal-camera__controls">
         <button type="button" className="camera-tool" onClick={() => galleryInput.current?.click()}><Images size={27} strokeWidth={1.5} /><span>{t('Gallery')}</span></button>
         <button type="button" className="camera-shutter" aria-label={t('Take picture of meal')} title={t('Take a photo')} onClick={() => void capture()}><span /></button>

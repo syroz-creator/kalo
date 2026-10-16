@@ -2,7 +2,7 @@
 
 @layer base {
   html {
-    background-color: #15120d;
+    background-color: #121715;
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -11,7 +11,7 @@
   }
 
   body {
-    background-color: #15120d;
+    background-color: #121715;
     color: #FFFFFF;
     margin: 0;
     padding: 0;
@@ -29,7 +29,7 @@ html, body {
 }
 
 html[data-theme="light"], html[data-theme="light"] body {
-  background-color: #f6f7f8;
+  background-color: #f6f8f5;
 }
 
 body { position: relative; }

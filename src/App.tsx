@@ -1,6 +1,6 @@
 import { t, useLanguage } from './i18n';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Home, TrendingUp, Camera, BookOpen, UserRound } from 'lucide-react';
+import { NotebookPen, ChartNoAxesCombined, Camera, BookOpen, Settings2 } from 'lucide-react';
 import type { LoggedItem, MealScanDraft, MealType, UserProfile, WorkoutItem } from './types';
 import { exportSavedMealCopies, loadPhotoRecipes, loadRecoverableMeals, loadUserProfile, loadWaterLogs, loadWorkouts, savePhotoRecipes, saveUserProfile, saveWaterLogs, saveWorkouts } from './services/storage';
 import { calculateEnergyNeeds } from './utils/calculator';
@@ -95,7 +95,7 @@ export default function App() {
   }, [theme, reminders]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#15120d' : '#f6f7f8');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#121715' : '#f6f8f5');
     void setNativeAppearance(theme).catch(() => {});
   }, [theme]);
   useEffect(() => {
@@ -182,7 +182,7 @@ export default function App() {
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `kalo-${getTodayKey()}.json`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  const tabs = [{ key: 'today', label: 'Today', icon: Home }, { key: 'progress', label: 'Progress', icon: TrendingUp }, { key: 'recipes', label: 'Recipes', icon: BookOpen }, { key: 'settings', label: 'Settings', icon: UserRound }] as const;
+  const tabs = [{ key: 'today', label: 'Today', icon: NotebookPen }, { key: 'progress', label: 'Progress', icon: ChartNoAxesCombined }, { key: 'recipes', label: 'Recipes', icon: BookOpen }, { key: 'settings', label: 'Settings', icon: Settings2 }] as const;
   const dialogOpen = !!manualMeal || !!editingItem || !!barcodeMeal || isAiSnapModalOpen || isOnboardingOpen;
   return <div className="app-root" onPointerDownCapture={unlockSound} onPointerUpCapture={unlockSound} onClickCapture={unlockSound} onKeyDownCapture={unlockSound}><div className="kalo-shell" data-theme={theme}>
     <div className="app-surface" inert={opening || dialogOpen}>
