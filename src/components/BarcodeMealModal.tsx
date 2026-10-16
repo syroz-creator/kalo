@@ -8,7 +8,7 @@ import { getUserErrorMessage } from '../utils/userFacingError';
 import { useDialogFocus } from '../utils/useDialogFocus';
 import { ProductPortionControls } from './ProductPortionControls';
 
-export function BarcodeMealModal({ date, meal: initialMeal, onClose, onLog, onManual }: { date: string; meal: MealType; onClose: () => void; onLog: (item: Omit<LoggedItem, 'id' | 'createdAt'>) => Promise<boolean>; onManual: () => void }) {
+export function BarcodeMealModal({ date, meal: initialMeal, autoStart = false, onBack, onClose, onLog, onManual }: { date: string; meal: MealType; autoStart?: boolean; onBack?: () => void; onClose: () => void; onLog: (item: Omit<LoggedItem, 'id' | 'createdAt'>) => Promise<boolean>; onManual: () => void }) {
   const [saving, setSaving] = useState(false);
   const [barcode, setBarcode] = useState('');
   const [meal, setMeal] = useState(initialMeal);
@@ -58,6 +58,7 @@ export function BarcodeMealModal({ date, meal: initialMeal, onClose, onLog, onMa
     try { const value = await readBarcodePhoto(file, controller.signal); if (!controller.signal.aborted) await findProduct(value); }
     catch (failure) { if (!controller.signal.aborted) { setError(getUserErrorMessage(failure, 'We could not read the barcode. Enter its digits instead.')); setBusy(false); } }
   };
+  useEffect(() => { if (autoStart) void scan(); }, [autoStart]);
   const nutrition = portion ? productPortionNutrition(portion) : null;
   const valid = !!portion && !!nutrition && Number.isFinite(nutrition.weight) && nutrition.weight > 0 && nutrition.weight <= 100000 && !busy && !camera;
   return <form ref={dialog} className="detail-page manual-page barcode-page" role="dialog" aria-modal="true" aria-labelledby="barcode-title" onSubmit={async event => {
@@ -69,7 +70,7 @@ export function BarcodeMealModal({ date, meal: initialMeal, onClose, onLog, onMa
     finally { setSaving(false); }
   }}>
     <div className="detail-scroll">
-      <button type="button" className="text-back" onClick={onClose}><ChevronLeft size={19} />{t("Today")}</button><h1 id="barcode-title">{t("Scan a barcode")}</h1>
+      <button type="button" className="text-back" onClick={onBack ?? onClose}><ChevronLeft size={19} />{onBack ? t('Meal photo') : t('Today')}</button><h1 id="barcode-title">{t("Scan a barcode")}</h1>
       <div className="barcode-preview" hidden={!camera}><video ref={video} muted playsInline aria-label={t("Barcode camera")} /><span className="barcode-viewfinder" aria-hidden="true" /><button type="button" className="icon-command" aria-label={t("Stop barcode camera")} title={t("Stop camera")} onClick={stopCamera}><X size={22} /></button></div>
       <div className="barcode-tools"><button type="button" className="primary-command" disabled={busy || camera} onClick={() => void scan()}><Camera size={19} />{t("Scan barcode")}</button><button type="button" className="icon-command" title={t("Choose barcode photo")} aria-label={t("Choose barcode photo")} disabled={busy} onClick={() => photoInput.current?.click()}><Upload size={22} /></button></div>
       <input ref={photoInput} type="file" accept="image/*" aria-label={t("Barcode photo")} hidden onChange={event => { const file = event.target.files?.[0]; if (file) void readPhoto(file); event.target.value = ''; }} />

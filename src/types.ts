@@ -62,6 +62,14 @@ export interface MealAnalysisResult {
   imageUrl?: string;
 }
 
+export interface MealScanDraft extends Pick<MealAnalysisResult, 'dishName' | 'totalCalories' | 'totalProtein' | 'totalCarbs' | 'totalFat'> {
+  foodId: string;
+  meal: MealType;
+  portionDescription: string;
+  imageUrl?: string;
+  ingredients: AnalyzedFoodItem[];
+}
+
 export interface LoggedItem {
   id: string;
   foodId: string;

@@ -1,140 +1,118 @@
-import { t } from '../i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AlertCircle, Camera, Check, Loader2, RefreshCw, Sparkles, Upload, X } from 'lucide-react';
-import type { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
+import { AlertCircle, Camera, RefreshCw, SquarePen } from 'lucide-react';
+import { t } from '../i18n';
+import type { AnalyzedFoodItem, MealAnalysisResult, MealScanDraft, MealType } from '../types';
 import { analyzeMealPhoto } from '../services/mealApi';
-import { captureMealPhoto, isNativeApp } from '../services/native';
 import { getUserErrorMessage } from '../utils/userFacingError';
-import { MealPortionEditor } from './MealPortionEditor';
 import { totalFoodNutrition } from '../utils/mealPortions';
+import { useDialogFocus } from '../utils/useDialogFocus';
+import { MealCamera } from './MealCamera';
+import { MealScanLoading } from './MealScanLoading';
+import { MealScanResult, type ScanDraftFields } from './MealScanResult';
 
 interface AiMealScannerProps {
   targetMeal: MealType;
   initialImage?: string | null;
   onChangeTargetMeal?: (meal: MealType) => void;
-  onLogMealResult: (result: { meal: MealType; dishName: string; totalCalories: number; totalProtein: number; totalCarbs: number; totalFat: number; portionDescription: string; imageUrl?: string; ingredients?: AnalyzedFoodItem[] }) => Promise<boolean>;
-  onClose?: () => void;
-  isModal?: boolean;
+  onLogMealResult: (result: MealScanDraft) => Promise<boolean>;
+  onSaveMealResult: (result: MealScanDraft) => Promise<boolean>;
+  onBarcode: () => void;
+  onClose: () => void;
   onNativeCameraPendingChange?: (pending: boolean) => void;
   onDescribeMeal?: () => void;
 }
 const fields = ['calories', 'protein', 'carbs', 'fat'] as const;
-const scanMessages = [
-  'Counting your calories...',
-  'عم نعدّ سعراتك...',
-  'סופרים את הקלוריות...',
-  'Contando tus calorías...',
-  'Calcul des calories...',
-  'Kalorien werden gezählt...',
-];
+const emptyNutrition = { calories: '', protein: '', carbs: '', fat: '' };
 
-export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, onLogMealResult, onClose, onNativeCameraPendingChange, onDescribeMeal }: AiMealScannerProps) {
-  const [meal, setMeal] = useState(targetMeal);
-  const [photo, setPhoto] = useState<string | null>(initialImage ?? null);
+export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, onLogMealResult, onSaveMealResult, onBarcode, onClose, onNativeCameraPendingChange, onDescribeMeal }: AiMealScannerProps) {
+  const [photo, setPhoto] = useState<string | null>(null);
   const [result, setResult] = useState<MealAnalysisResult | null>(null);
   const [editedItems, setEditedItems] = useState<AnalyzedFoodItem[]>([]);
-  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState<ScanDraftFields>({ meal: targetMeal, name: '', details: '', nutrition: emptyNutrition });
+  const [busy, setBusy] = useState<'save' | 'log' | null>(null);
+  const [saved, setSaved] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [scanMessageIndex, setScanMessageIndex] = useState(0);
   const [error, setError] = useState('');
-  const errorMessage = useRef<HTMLDivElement>(null);
-  const [portionDetails, setPortionDetails] = useState('');
   const [resultDetails, setResultDetails] = useState('');
-  const [name, setName] = useState('');
-  const [nutrition, setNutrition] = useState({ calories: '', protein: '', carbs: '', fat: '' });
-  const camera = useRef<HTMLInputElement>(null);
-  const library = useRef<HTMLInputElement>(null);
-  const portionInput = useRef<HTMLTextAreaElement>(null);
   const request = useRef<AbortController | null>(null);
+  const imageIdentity = useRef('');
+  const foodId = useRef('');
+  const savingRef = useRef(false);
+  const close = () => { if (!savingRef.current) onClose(); };
+  const dialog = useDialogFocus<HTMLDivElement>(true, close);
+  const phase = analyzing ? 'loading' : result ? 'result' : photo ? 'error' : 'camera';
+  useEffect(() => {
+    const root = dialog.current;
+    const button = Array.from(root?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []).find(element => !element.closest('[inert]') && element.getClientRects().length > 0);
+    (button ?? root)?.focus({ preventScroll: true });
+  }, [phase, busy, dialog]);
+
   const analyze = useCallback(async (imageUrl: string, details = '') => {
     request.current?.abort();
     const controller = new AbortController(); request.current = controller;
-    setPhoto(imageUrl); setPortionDetails(details); setAnalyzing(true); setError(''); setResult(null);
+    if (imageIdentity.current !== imageUrl) {
+      imageIdentity.current = imageUrl; foodId.current = `ai-${crypto.randomUUID()}`;
+      setResult(null); setEditedItems([]);
+    }
+    setPhoto(imageUrl); setAnalyzing(true); setError(''); setSaved(false);
+    setDraft(value => ({ ...value, details }));
     try {
       const data = await analyzeMealPhoto(imageUrl, controller.signal, details);
       if (controller.signal.aborted) return;
-      setResult(data); setEditedItems(data.items); setResultDetails(details.trim()); setName(data.dishName);
-      setNutrition({ calories: String(data.totalCalories), protein: String(data.totalProtein), carbs: String(data.totalCarbs), fat: String(data.totalFat) });
+      setResult(data); setEditedItems(data.items); setResultDetails(details.trim());
+      setDraft(value => ({ ...value, name: data.dishName, details, nutrition: { calories: String(data.totalCalories), protein: String(data.totalProtein), carbs: String(data.totalCarbs), fat: String(data.totalFat) } }));
     } catch (failure) {
       if (!controller.signal.aborted) setError(getUserErrorMessage(failure, 'We could not estimate this meal. Please try again, or log it manually.'));
     } finally { if (!controller.signal.aborted) setAnalyzing(false); }
   }, []);
-  useEffect(() => { setMeal(targetMeal); }, [targetMeal]);
-  useEffect(() => { if (error) errorMessage.current?.scrollIntoView({ block: 'nearest' }); }, [error]);
-  useEffect(() => {
-    if (!analyzing) {
-      setScanMessageIndex(0);
-      return;
-    }
-    const timer = window.setInterval(() => setScanMessageIndex(index => (index + 1) % scanMessages.length), 1200);
-    return () => window.clearInterval(timer);
-  }, [analyzing]);
-  useEffect(() => {
-    const input = camera.current;
-    const cancel = () => onNativeCameraPendingChange?.(false);
-    input?.addEventListener('cancel', cancel);
-    return () => input?.removeEventListener('cancel', cancel);
-  }, [onNativeCameraPendingChange]);
-  useEffect(() => {
-    if (initialImage) void analyze(initialImage);
-    return () => request.current?.abort();
-  }, [initialImage, analyze]);
-  const readPhoto = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    onNativeCameraPendingChange?.(false);
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => void analyze(reader.result as string);
-    reader.onerror = () => setError('Could not read this photo. Please try again.');
-    reader.readAsDataURL(file); event.target.value = '';
+  useEffect(() => { setDraft(value => ({ ...value, meal: targetMeal })); }, [targetMeal]);
+  useEffect(() => { if (initialImage) void analyze(initialImage); return () => request.current?.abort(); }, [initialImage, analyze]);
+
+  const change = (changes: Partial<ScanDraftFields>) => {
+    setDraft(value => ({ ...value, ...changes })); setSaved(false); setError('');
+    if (changes.meal) onChangeTargetMeal?.(changes.meal);
   };
-  const takePhoto = async () => {
-    onNativeCameraPendingChange?.(true);
-    if (!isNativeApp()) { camera.current?.click(); return; }
-    try {
-      const image = await captureMealPhoto();
-      if (image) void analyze(image);
-    } catch (failure) { setError(getUserErrorMessage(failure, 'We could not open the camera. Please try again, or choose a photo from your library.')); }
-    finally { onNativeCameraPendingChange?.(false); }
+  const updateItems = (items: AnalyzedFoodItem[]) => {
+    setEditedItems(items);
+    const totals = totalFoodNutrition(items);
+    change({ nutrition: { calories: String(totals.calories), protein: String(totals.protein), carbs: String(totals.carbs), fat: String(totals.fat) } });
+  };
+  const addIngredient = (item: AnalyzedFoodItem) => {
+    const items = [...editedItems.filter(food => food.portionQuantity !== 0), item];
+    setResult(value => value ? { ...value, items } : null);
+    updateItems(items);
+  };
+  const retake = () => {
+    request.current?.abort(); setAnalyzing(false); setPhoto(null); setResult(null); setEditedItems([]); setSaved(false); setError('');
+    setDraft(value => ({ ...value, name: '', details: '', nutrition: emptyNutrition }));
+    setResultDetails(''); imageIdentity.current = '';
   };
   const cancelScan = () => {
-    request.current?.abort();
-    setAnalyzing(false); setError('Scan cancelled.');
+    request.current?.abort(); setAnalyzing(false); setError('');
+    if (result) setDraft(value => ({ ...value, details: resultDetails }));
+    else retake();
   };
-  const valid = portionDetails.trim() === resultDetails && editedItems.some(item => item.portionQuantity !== 0) && !!name.trim() && fields.every(field => nutrition[field].trim() !== '' && Number.isFinite(Number(nutrition[field])) && Number(nutrition[field]) >= 0);
-  const log = async () => {
-    if (!result || !valid || saving) return;
-    const values = { calories: Number(nutrition.calories), protein: Number(nutrition.protein), carbs: Number(nutrition.carbs), fat: Number(nutrition.fat) };
+  const valid = draft.details.trim() === resultDetails && editedItems.some(item => item.portionQuantity !== 0) && !!draft.name.trim()
+    && fields.every(field => draft.nutrition[field].trim() !== '' && Number.isFinite(Number(draft.nutrition[field])) && Number(draft.nutrition[field]) >= 0);
+  const persist = async (action: 'save' | 'log') => {
+    if (!result || !valid || savingRef.current) return;
+    savingRef.current = true; setBusy(action); setError('');
+    const values = { calories: Number(draft.nutrition.calories), protein: Number(draft.nutrition.protein), carbs: Number(draft.nutrition.carbs), fat: Number(draft.nutrition.fat) };
     const activeItems = editedItems.filter(item => item.portionQuantity !== 0);
     const bases = totalFoodNutrition(activeItems);
-    // Keep ingredient totals aligned with any corrections made before logging.
     const ingredients = activeItems.map(item => ({ ...item, ...Object.fromEntries(fields.map(field => [field, bases[field] > 0 ? item[field] * values[field] / bases[field] : values[field] / activeItems.length])) }));
-    setSaving(true);
-    try { if (await onLogMealResult({ meal, dishName: name.trim(), totalCalories: Math.round(values.calories), totalProtein: Math.round(values.protein * 10) / 10, totalCarbs: Math.round(values.carbs * 10) / 10, totalFat: Math.round(values.fat * 10) / 10, portionDescription: ingredients.map(item => `${item.name} (${item.portion})`).join(', '), imageUrl: photo ?? undefined, ingredients })) onClose?.(); }
-    finally { setSaving(false); }
+    const entry: MealScanDraft = { foodId: foodId.current, meal: draft.meal, dishName: draft.name.trim(), totalCalories: Math.round(values.calories), totalProtein: Math.round(values.protein * 10) / 10, totalCarbs: Math.round(values.carbs * 10) / 10, totalFat: Math.round(values.fat * 10) / 10, portionDescription: ingredients.map(item => `${item.name} (${item.portion})`).join(', '), imageUrl: photo ?? undefined, ingredients };
+    try {
+      const success = await (action === 'save' ? onSaveMealResult(entry) : onLogMealResult(entry));
+      if (success) { if (action === 'save') setSaved(true); else onClose(); }
+      else setError('Your meal could not be saved. Please try again.');
+    } catch (failure) { setError(getUserErrorMessage(failure, 'Your meal could not be saved. Please try again.')); }
+    finally { savingRef.current = false; setBusy(null); }
   };
-  return <div className="meal-scan">
-    <input ref={camera} type="file" accept="image/*" capture="environment" onChange={readPhoto} aria-label={t("Retake meal photo")} hidden />
-    <input ref={library} type="file" accept="image/*" onChange={readPhoto} aria-label={t("Choose meal photo")} hidden />
-    {photo && <div className="meal-scan__photo"><img src={photo} alt={t("Meal preview")} />{!analyzing && <button type="button" onClick={takePhoto}><RefreshCw size={15} />{t("Retake")}</button>}</div>}
-    {analyzing && <div className="meal-scan__status meal-scan__status--animated" role="status" aria-live="polite">
-      <div className="meal-scan__pulse" aria-hidden="true"><Sparkles size={18} /><span>120</span><span>245</span><span>390</span></div>
-      <div className="meal-scan__status-copy"><Loader2 size={20} className="animate-spin" /><span>{scanMessages[scanMessageIndex]}</span><small>{t("Scanning your meal...")}</small></div>
-      <button type="button" className="icon-command" aria-label={t("Cancel scan")} title={t("Cancel scan")} onClick={cancelScan}><X size={20} /></button>
-    </div>}
-    {error && <div ref={errorMessage} className="meal-scan__error" role="alert"><AlertCircle size={20} /><div><strong>{t("Could not analyze photo")}</strong><p>{t(String(error))}</p><div className="meal-scan__recovery">{photo && <button type="button" onClick={() => void analyze(photo, portionDetails)}>{t("Try again")}</button>}{onDescribeMeal && <button type="button" onClick={onDescribeMeal}>{t("Describe instead")}</button>}</div></div></div>}
-    {!photo && <div className="meal-scan__empty"><button type="button" className="primary-command" onClick={takePhoto}><Camera size={19} />{t("Take a photo")}</button><button type="button" className="text-back" onClick={() => library.current?.click()}><Upload size={18} />{t("Photo library")}</button></div>}
-    {result && <div className="meal-scan__result">
-      <h2>{name || t('Your meal')}</h2><p className="detail-calories"><strong>{Math.round(Number(nutrition.calories) || 0)}</strong> {t("kcal")}</p>
-      <fieldset className="meal-segments"><legend>{t("Meal type")}</legend><div>{(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(value => <button type="button" key={value} aria-pressed={meal === value} className={meal === value ? 'is-selected' : ''} onClick={() => { setMeal(value); onChangeTargetMeal?.(value); }}>{t(value.charAt(0).toUpperCase() + value.slice(1))}</button>)}</div></fieldset>
-      <h3>{t("Food portions")}</h3><MealPortionEditor items={result.items} onChange={items => { setEditedItems(items); const totals = totalFoodNutrition(items); setNutrition({ calories: String(totals.calories), protein: String(totals.protein), carbs: String(totals.carbs), fat: String(totals.fat) }); }} />
-      {result.notes && <p className="settings-note">{result.notes}</p>}
-      {result.referenceTip && <p className="settings-note">{result.referenceTip}</p>}
-      <div className="app-field"><label htmlFor="photo-portion-details">{t("Portion or label details (optional)")}</label><textarea id="photo-portion-details" ref={portionInput} rows={2} maxLength={2000} value={portionDetails} placeholder={t("e.g. 2 biscuits, 25 g total; label: 124 kcal per packet")} onChange={event => setPortionDetails(event.target.value)} /></div>
-      <button type="button" className="text-back" disabled={portionDetails.trim() === resultDetails} onClick={() => { if (photo) { portionInput.current?.blur(); void analyze(photo, portionDetails); } }}><Sparkles size={18} />{t("Update estimate")}</button>
-      <label className="app-field">{t("Meal name")}<input value={name} onChange={event => setName(event.target.value)} /></label>
-      <div className="manual-nutrients">{fields.map(field => <label key={field} className="app-field">{t(field.charAt(0).toUpperCase() + field.slice(1))} ({field === 'calories' ? t('kcal') : t('g')})<input type="number" inputMode="decimal" min={0} step={field === 'calories' ? 1 : 0.1} value={nutrition[field]} onChange={event => setNutrition({ ...nutrition, [field]: event.target.value })} /></label>)}</div>
-      <p className="settings-note">{t("Estimated nutrition")}</p><button type="button" className="primary-command" disabled={!valid || saving} onClick={() => void log()}>{saving ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}{saving ? t('Saving...') : t('Log {calories} kcal to {meal}', { calories: Math.round(Number(nutrition.calories) || 0), meal: t(meal.charAt(0).toUpperCase() + meal.slice(1)) })}</button>
-    </div>}
+
+  return <div ref={dialog} className={`scan-workspace${photo ? ' scan-workspace--photo' : ''}`} role="dialog" aria-modal="true" aria-label={t('Meal photo')} tabIndex={-1}>
+    {!photo && <MealCamera onPhoto={image => void analyze(image)} onClose={close} onBarcode={onBarcode} onNativeCameraPendingChange={onNativeCameraPendingChange} />}
+    {photo && <img className="scan-workspace__photo" src={photo} alt={t('Meal preview')} />}
+    {analyzing ? <MealScanLoading onCancel={cancelScan} /> : result ? <MealScanResult result={result} items={editedItems} draft={draft} onChange={change} onItemsChange={updateItems} onAddIngredient={addIngredient} onRefine={() => { if (photo) { (document.activeElement as HTMLElement | null)?.blur(); void analyze(photo, draft.details); } }} onLog={() => void persist('log')} onSave={() => void persist('save')} onRetake={retake} onClose={close} valid={valid} canRefine={draft.details.trim() !== resultDetails} busy={busy} saved={saved} error={error} /> : photo && error && <div className="scan-error-backdrop"><section className="scan-error" role="alert"><AlertCircle size={30} /><h2>{t('Could not analyze photo')}</h2><p>{t(String(error))}</p><button type="button" className="primary-command" onClick={() => void analyze(photo, draft.details)}><RefreshCw size={18} />{t('Try again')}</button><button type="button" className="text-back" onClick={retake}><Camera size={18} />{t('Retake photo')}</button>{onDescribeMeal && <button type="button" className="text-back" onClick={onDescribeMeal}><SquarePen size={18} />{t('Describe instead')}</button>}<button type="button" className="scan-error__close" onClick={close}>{t('Cancel')}</button></section></div>}
   </div>;
 }

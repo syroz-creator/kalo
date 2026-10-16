@@ -8,7 +8,7 @@ import { errorMessages } from '../src/i18n/errors';
 import { createMealAnalyzer } from '../src/services/mealAnalyzer';
 
 const catalog = { ...messages, ...errorMessages };
-const components = ['TodayTab', 'ProgressTab', 'RecipesTab', 'SettingsTab', 'ContactSheet', 'AiMealScanner', 'EditLoggedModal', 'OnboardingModal', 'ManualMealModal', 'BarcodeMealModal', 'GoalCelebration', 'GeminiKeySettings', 'MealPortionEditor', 'ProductPortionControls', 'PlanSettings', 'NumberPicker', 'OpeningSplash', 'MealRow', 'LanguageSelector'];
+const components = ['TodayTab', 'ProgressTab', 'RecipesTab', 'SettingsTab', 'ContactSheet', 'AiMealScanner', 'MealCamera', 'MealScanLoading', 'MealScanResult', 'MealIngredientForm', 'EditLoggedModal', 'OnboardingModal', 'ManualMealModal', 'BarcodeMealModal', 'GoalCelebration', 'GeminiKeySettings', 'MealPortionEditor', 'ProductPortionControls', 'PlanSettings', 'NumberPicker', 'OpeningSplash', 'MealRow', 'LanguageSelector'];
 // The parser is part of the existing Vite toolchain; inspect messages without matching code with regexes.
 function visit(node: any, callback: (node: any) => void) {
   if (!node || typeof node !== 'object') return;
