@@ -296,6 +296,7 @@ export const messages: Record<string, readonly [string, string]> = {
   'API key removed from this device.': ['انحذف مفتاح API من هالجهاز.', 'מפתח ה-API הוסר מהמכשיר הזה.'],
   'Google AI Studio': ['Google AI Studio', 'Google AI Studio'],
   'Opening Kalo': ['عم نفتح Kalo', 'פותחים את Kalo'],
+  'Skip intro': ['تخطّي المقدّمة', 'דילוג על הפתיח'],
   'Kalo': ['Kalo', 'Kalo'],
   'Daily calorie target reached': ['وصلت لهدف السعرات اليومي', 'הגעת ליעד הקלוריות היומי'],
   'Aced it!': ['قدّها وقدود!', 'כל הכבוד!'],

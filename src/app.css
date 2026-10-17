@@ -170,10 +170,34 @@
 .app-toast { position: absolute; z-index: 60; bottom: 98px; left: 20px; right: 20px; display: flex; align-items: center; justify-content: space-between; gap: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 15px 18px; box-shadow: 0 4px 20px #0003; font-size: 12px; }
 .app-toast button { color: var(--gold); font-weight: 600; min-height: 28px; }
 .app-toast > span { min-width: 0; overflow-wrap: anywhere; }.app-toast button { flex-shrink: 0; }
-.opening-splash { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg); animation: splash-away .25s ease .55s both; }
+.opening-splash { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; background: var(--bg); animation: splash-away .38s ease calc(var(--opening-duration) - 380ms) both; }
 @font-face { font-family: "Fredoka"; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/fredoka-kalo.ttf') format('truetype'); }
-.opening-splash__wordmark { font-family: "Fredoka", ui-rounded, system-ui, sans-serif; font-size: 112px; font-style: normal; font-weight: 600; line-height: 1.3; padding: 0 10px; max-width: 100%; color: var(--gold); animation: wordmark-arrive .35s ease both; }
-@keyframes wordmark-arrive { from { opacity: 0; } to { opacity: 1; } }
+.opening-splash__scene { display: block; width: min(400px, calc(100% - 24px)); height: auto; aspect-ratio: 5 / 4; flex-shrink: 0; direction: ltr; overflow: visible; }
+.opening-splash__letters, .opening-splash__wordmark { font-family: "Fredoka", ui-rounded, system-ui, sans-serif; font-style: normal; font-weight: 600; }
+.opening-splash__letters { font-size: 110px; }
+.opening-splash__plate { transform-origin: 200px 138px; animation: opening-plate var(--opening-duration) cubic-bezier(.22,.72,.2,1) both; }
+.opening-splash__dish { fill: var(--surface); animation: opening-dish var(--opening-duration) ease both; }
+.opening-splash__outline { stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-90deg); transform-origin: 200px 138px; animation: opening-outline var(--opening-duration) ease both; }
+.opening-splash__rim { animation: opening-rim var(--opening-duration) ease both; }
+.opening-splash__fork { animation: opening-fork var(--opening-duration) ease both; }
+.opening-splash__spoon { animation: opening-spoon var(--opening-duration) ease both; }
+.opening-splash__apple { transform-origin: 200px 174px; animation: opening-apple var(--opening-duration) ease both; }
+.opening-splash__leaf { transform-origin: 201px 116px; animation: opening-leaf var(--opening-duration) ease both; }
+.opening-splash__letter { animation: opening-letter .58s cubic-bezier(.2,.7,.22,1) 1.68s both; }
+.opening-splash__letter--1 { animation-delay: 1.8s; }.opening-splash__letter--2 { animation-delay: 1.92s; }
+.opening-splash__o { animation: opening-o var(--opening-duration) ease both; }
+.opening-splash__wordmark { display: none; font-size: 96px; line-height: 1.3; padding: 0 14px; max-width: 100%; color: var(--gold); }
+.opening-splash__skip { position: absolute; inset-inline-end: 22px; bottom: max(22px, env(safe-area-inset-bottom)); width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 50%; color: var(--muted); }
+@keyframes opening-plate { 0% { opacity: 0; transform: scale(.88); } 9% { opacity: 1; transform: scale(1.035); } 21%, 46% { opacity: 1; transform: scale(1); } 73% { opacity: 1; transform: translate(79px, 36px) scale(.4); } 78%, 100% { opacity: 0; transform: translate(79px, 36px) scale(.4); } }
+@keyframes opening-outline { 0%, 4% { stroke-dashoffset: 1; stroke-width: 6; } 27%, 52% { stroke-dashoffset: 0; stroke-width: 6; } 73%, 100% { stroke-dashoffset: 0; stroke-width: 34; } }
+@keyframes opening-o { 0%, 72% { opacity: 0; } 78%, 100% { opacity: 1; } }
+@keyframes opening-dish { 0% { opacity: 0; fill: var(--surface); } 17%, 48% { opacity: 1; fill: var(--surface); } 73%, 100% { opacity: 1; fill: var(--bg); } }
+@keyframes opening-rim { 0% { opacity: 0; transform: scale(.9); } 22%, 47% { opacity: 1; transform: scale(1); } 62%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes opening-fork { 0%, 4% { opacity: 0; transform: translate(-25px, 8px) rotate(-6deg); } 24%, 43% { opacity: 1; transform: translate(0, 0) rotate(0); } 61%, 100% { opacity: 0; transform: translate(-25px, 8px) rotate(-6deg); } }
+@keyframes opening-spoon { 0%, 8% { opacity: 0; transform: translate(25px, -8px) rotate(6deg); } 28%, 43% { opacity: 1; transform: translate(0, 0) rotate(0); } 61%, 100% { opacity: 0; transform: translate(25px, -8px) rotate(6deg); } }
+@keyframes opening-apple { 0%, 14% { opacity: 0; transform: translateY(-32px) rotate(-14deg) scale(.85); } 28% { opacity: 1; transform: translateY(4px) rotate(5deg) scale(1.025); } 36% { opacity: 1; transform: translateY(-2px) rotate(-3deg) scale(1); } 43%, 49% { opacity: 1; transform: translateY(0) rotate(0) scale(1); } 63%, 100% { opacity: 0; transform: translateY(-6px) rotate(0) scale(.65); } }
+@keyframes opening-leaf { 0%, 24% { transform: rotate(-24deg) scale(.45); } 36% { transform: rotate(8deg) scale(1); } 43%, 100% { transform: rotate(0) scale(1); } }
+@keyframes opening-letter { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes splash-away { from { opacity: 1; } to { opacity: 0; } }
 /* Existing progress, recipe and plan controls share the reference palette. */
 .app-main .bg-\[\#18181B\], .app-main .bg-zinc-900, .app-main .bg-\[\#121214\] { background-color: var(--surface); }
@@ -184,7 +208,7 @@
 .settings-plan .bg-\[\#202024\] { background: transparent; border: 0; box-shadow: none; }.settings-plan .rounded-2xl { border-radius: 16px; }
 @media (min-width: 600px) and (hover: hover) and (pointer: fine) { .app-root { padding: 16px; }.kalo-shell { max-width: 430px; height: min(900px, calc(var(--app-height, 100dvh) - 32px)); border: 1px solid var(--border); border-radius: 28px; box-shadow: 0 24px 70px #0005; } }
 @media (max-width: 350px) { .app-scroll { padding-left: 18px; padding-right: 18px; }.journal-macros > div { grid-template-columns: 80px minmax(0, 1fr); gap: 8px; }.journal-macros dd { grid-template-columns: minmax(20px, 1fr) 90px; gap: 10px; }.meal-row__photo { width: 40px; height: 40px; }.meal-row__open { gap: 8px; }.detail-body { padding: 18px 14px; }.ingredient-row { padding: 10px; }.ingredient-stepper { gap: 4px; } }
-@media (prefers-reduced-motion: reduce) { .opening-splash, .opening-splash__wordmark { animation: none; }.journal-energy > span, .journal-macros__track > i, .meal-row { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .opening-splash, .opening-splash * { animation: none !important; }.opening-splash__scene { display: none; }.opening-splash__wordmark { display: block; }.journal-energy > span, .journal-macros__track > i, .meal-row { transition: none; } }
 .recipes-heading { display: flex; justify-content: space-between; align-items: center; margin: 0 0 24px; }
 .recipes-heading h1 { font-size: 28px; line-height: 1.25; font-weight: 650; }
 .recipes-heading > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
