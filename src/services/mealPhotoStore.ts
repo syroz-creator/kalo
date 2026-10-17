@@ -64,11 +64,13 @@ export async function hydrateMealPhotos(items: LoggedItem[]) {
   const photos = await photoTransaction<Map<string, string>>('readonly', (store, done) => {
     const values = new Map<string, string>();
     done(values);
-    for (const item of missing) {
-      const request = store.get(item.photoId!);
-      request.onsuccess = () => { if (typeof request.result === 'string') values.set(item.photoId!, request.result); };
+    for (const photoId of new Set(missing.map(item => item.photoId!))) {
+      const request = store.get(photoId);
+      request.onsuccess = () => { if (typeof request.result === 'string' && request.result) values.set(photoId, request.result); };
     }
   });
+  // A missing archive must not look like a state change and restart hydration.
+  if (!photos.size) return items;
   return items.map(item => photos.has(item.photoId!) ? { ...item, imageUrl: photos.get(item.photoId!) } : item);
 }
 

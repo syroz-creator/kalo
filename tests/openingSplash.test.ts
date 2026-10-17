@@ -12,7 +12,7 @@ test('the opening uses a multi-stage brand mark, one accessible status and a ski
   assert.match(markup, /opening-splash__fork/);
   assert.match(markup, /opening-splash__spoon/);
   assert.equal((markup.match(/class="opening-splash__letter /g) ?? []).length, 3);
-  assert.match(markup, /class="opening-splash__o" x="246.54" y="205">o<\/text>/);
+  assert.doesNotMatch(markup, /opening-splash__o["\s]/);
   assert.match(markup, /aria-label="Skip intro"/);
   assert.match(markup, /aria-hidden="true" focusable="false"/);
   assert.match(markup, /opening-splash__wordmark" aria-hidden="true">Kalo/);

@@ -1,6 +1,6 @@
 import { t, getLocale } from '../i18n';
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, ChevronLeft, Dumbbell, Equal, Mars, TrendingDown, Venus } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, Dumbbell, Equal, Mars, TrendingDown, Venus } from 'lucide-react';
 import { ActivityLevel, BiologicalSex, UnitSystem, UserProfile, WeightGoal } from '../types';
 import { calculateEnergyNeeds, kgToLbs, lbsToKg } from '../utils/calculator';
 import { NumberPicker } from './NumberPicker';
@@ -27,7 +27,7 @@ const titles = ["What's your goal?", "Let's get to know you", 'Your height and w
 const descriptions = [
   "We'll use this to set your calories and macros.",
   'A few details to estimate your daily needs.',
-  'Find your measurements on the ruler.',
+  'Your starting measurements.',
   'Choose what best describes your usual week.',
   'A steady pace is easier to keep up with.',
   'A starting point you can adjust as you go.',
@@ -103,7 +103,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
   };
 
   return (
-    <form ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="setup-title" onKeyDown={trapFocus} className="setup"
+    <form ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="setup-title" onKeyDown={trapFocus} className="setup" data-step={step}
       onSubmit={event => {
         event.preventDefault();
         if (!valid) return;
@@ -111,20 +111,24 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
         else onComplete(profile);
       }}>
       <header className="setup-header">
-        <span className="setup-step" aria-label={t('Step {step} of 6', { step })}>{step} / 6</span>
-        <div className="setup-progress" role="progressbar" aria-label={t("Setup progress")} aria-valuemin={0} aria-valuemax={6} aria-valuenow={step}>
-          <span style={{ width: `${step / 6 * 100}%` }} />
+        <div className="setup-brand-row"><span className="setup-wordmark">{t('Kalo')}</span><LanguageSelector /></div>
+        <div className="setup-navigation">
+          <button type="button" aria-label={t("Previous step")} title={t("Back")} disabled={step === 1} onClick={() => setStep(step - 1)} className="setup-back"><ChevronLeft size={21} /></button>
+          <div className="setup-progress" role="progressbar" aria-label={t("Setup progress")} aria-valuemin={0} aria-valuemax={6} aria-valuenow={step}>
+            {Array.from({ length: 6 }, (_, index) => <span key={index} className={index < step ? 'is-filled' : ''} />)}
+          </div>
+          <span className="setup-step" aria-label={t('Step {step} of 6', { step })}>{step} / 6</span>
         </div>
-        <button type="button" aria-label={t("Previous step")} title={t("Back")} disabled={step === 1} onClick={() => setStep(step - 1)} className="setup-back"><ChevronLeft size={22} /></button>
       </header>
 
       <div ref={contentRef} className="setup-content">
-        <div className="setup-language"><LanguageSelector /></div>
-        <h2 id="setup-title" ref={headingRef} tabIndex={-1} className="setup-title">{t(String(titles[step - 1]))}</h2>
-        <p className="setup-description">{t(String(descriptions[step - 1]))}</p>
+        <div className="setup-heading" key={step}>
+          <h2 id="setup-title" ref={headingRef} tabIndex={-1} className="setup-title">{t(String(titles[step - 1]))}</h2>
+          <p className="setup-description">{t(String(descriptions[step - 1]))}</p>
+        </div>
 
         {step === 1 && (
-          <fieldset className="setup-options">
+          <fieldset className="setup-options setup-options--goals">
             <legend className="sr-only">{t("Your goal")}</legend>
             {goals.map(option => (
               <label key={option.value} className={`setup-choice ${goal === option.value ? 'is-selected' : ''}`}>
@@ -144,7 +148,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
               {([{ value: 'female', label: 'Female', Icon: Venus }, { value: 'male', label: 'Male', Icon: Mars }] as const).map(option => (
                 <label key={option.value} className={`setup-sex__option ${sex === option.value ? 'is-selected' : ''}`}>
                   <input type="radio" name="sex" checked={sex === option.value} onChange={() => setSex(option.value)} className="sr-only" />
-                  <option.Icon size={32} strokeWidth={1.75} aria-hidden="true" />
+                  <option.Icon size={22} strokeWidth={1.75} aria-hidden="true" />
                   <span>{t(String(option.label))}</span>
                 </label>
               ))}
@@ -215,7 +219,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
       </div>
 
       <footer className="setup-footer">
-        <button type="submit" disabled={!valid} className="setup-next">{step === 5 ? t('Show my plan') : step === 6 ? t('Start my day') : t('Next')}</button>
+        <button type="submit" disabled={!valid} className="setup-next"><span>{step === 5 ? t('Show my plan') : step === 6 ? t('Start my day') : t('Next')}</span>{step === 6 ? <Check size={20} aria-hidden="true" /> : <ArrowRight size={19} aria-hidden="true" />}</button>
       </footer>
     </form>
   );

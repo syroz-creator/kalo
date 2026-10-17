@@ -1,5 +1,6 @@
 // English source messages remain the fallback; each entry is [Palestinian Arabic, Hebrew].
 export const messages: Record<string, readonly [string, string]> = {
+  'Your starting measurements.': ['قياساتك كبداية.', 'המידות שלך בנקודת ההתחלה.'],
   'Body progress': ['تغيّر الجسم', 'התקדמות הגוף'],
   'Every 15 days': ['كل ١٥ يوم', 'כל 15 ימים'],
   'Check-in due': ['حان موعد الصورة الجديدة', 'הגיע הזמן לתמונה חדשה'],

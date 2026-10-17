@@ -49,7 +49,6 @@ export function OpeningSplash({ onComplete }: { onComplete: () => void }) {
         </g>
         <g className="opening-splash__letters" fill="var(--gold)">
           {t('Kalo').slice(0, -1).split('').map((letter, index) => <text key={index} className={`opening-splash__letter opening-splash__letter--${index}`} x={[91, 156.45, 213.43][index]} y="205">{letter}</text>)}
-          <text className="opening-splash__o" x="246.54" y="205">{t('Kalo').slice(-1)}</text>
         </g>
       </svg>
       <span className="opening-splash__wordmark" aria-hidden="true">{t("Kalo")}</span>

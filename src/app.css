@@ -185,12 +185,10 @@
 .opening-splash__leaf { transform-origin: 201px 116px; animation: opening-leaf var(--opening-duration) ease both; }
 .opening-splash__letter { animation: opening-letter .58s cubic-bezier(.2,.7,.22,1) 1.68s both; }
 .opening-splash__letter--1 { animation-delay: 1.8s; }.opening-splash__letter--2 { animation-delay: 1.92s; }
-.opening-splash__o { animation: opening-o var(--opening-duration) ease both; }
 .opening-splash__wordmark { display: none; font-size: 96px; line-height: 1.3; padding: 0 14px; max-width: 100%; color: var(--gold); }
 .opening-splash__skip { position: absolute; inset-inline-end: 22px; bottom: max(22px, env(safe-area-inset-bottom)); width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 50%; color: var(--muted); }
-@keyframes opening-plate { 0% { opacity: 0; transform: scale(.88); } 9% { opacity: 1; transform: scale(1.035); } 21%, 46% { opacity: 1; transform: scale(1); } 73% { opacity: 1; transform: translate(79px, 36px) scale(.4); } 78%, 100% { opacity: 0; transform: translate(79px, 36px) scale(.4); } }
-@keyframes opening-outline { 0%, 4% { stroke-dashoffset: 1; stroke-width: 6; } 27%, 52% { stroke-dashoffset: 0; stroke-width: 6; } 73%, 100% { stroke-dashoffset: 0; stroke-width: 34; } }
-@keyframes opening-o { 0%, 72% { opacity: 0; } 78%, 100% { opacity: 1; } }
+@keyframes opening-plate { 0% { opacity: 0; transform: scale(.88); } 9% { opacity: 1; transform: scale(1.035); } 21%, 46% { opacity: 1; transform: scale(1); } 73%, 100% { opacity: 1; transform: translate(79px, 36px) scale(.4); } }
+@keyframes opening-outline { 0%, 4% { stroke-dashoffset: 1; stroke-width: 6; } 27%, 52% { stroke-dashoffset: 0; stroke-width: 6; } 73%, 100% { stroke-dashoffset: 0; stroke-width: 22; } }
 @keyframes opening-dish { 0% { opacity: 0; fill: var(--surface); } 17%, 48% { opacity: 1; fill: var(--surface); } 73%, 100% { opacity: 1; fill: var(--bg); } }
 @keyframes opening-rim { 0% { opacity: 0; transform: scale(.9); } 22%, 47% { opacity: 1; transform: scale(1); } 62%, 100% { opacity: 0; transform: scale(1); } }
 @keyframes opening-fork { 0%, 4% { opacity: 0; transform: translate(-25px, 8px) rotate(-6deg); } 24%, 43% { opacity: 1; transform: translate(0, 0) rotate(0); } 61%, 100% { opacity: 0; transform: translate(-25px, 8px) rotate(-6deg); } }
@@ -303,8 +301,6 @@
 ::view-transition-old(root) { animation: language-backdrop-in .16s ease reverse both; }
 ::view-transition-new(root) { animation: language-backdrop-in .2s ease both; }
 @media (prefers-reduced-motion: reduce) { .language-overlay, .language-panel { animation: none; } }
-.setup-language { display: flex; justify-content: flex-end; margin: -14px 0 22px; }
-.setup-language .language-select { max-width: 100%; }
 .meal-row__open, .meal-row__menu button, .settings-row, .photo-recipe__open { text-align: start; }
 .meal-row__calories { text-align: end; }
 .meal-row__menu { right: auto; inset-inline-end: 8px; }
@@ -464,9 +460,10 @@
 .body-photo-viewer > img { display: block; flex: 1; min-height: 0; width: 100%; object-fit: contain; }
 @media (max-width: 350px) { .body-progress__photos { gap: 8px; }.body-progress__add { padding-inline: 10px; }.body-photo-editor { padding-inline: 16px; } }
 [dir="rtl"] .lucide-chevron-left, [dir="rtl"] .lucide-chevron-right { transform: scaleX(-1); }
+[dir="rtl"] .setup-next > .lucide-arrow-right { transform: scaleX(-1); }
 [dir="rtl"] .kalo-shell .text-left { text-align: right; }
 [dir="rtl"] .kalo-shell .text-right { text-align: left; }
-[dir="rtl"] .setup-pace__slider { background: linear-gradient(to left, #ee9512 var(--pace-progress), #33291f var(--pace-progress)); }
+[dir="rtl"] .setup-pace__slider { --pace-direction: to left; }
 /* Swipe directions stay physical: left deletes and right logs again in every language. */
 .meal-swipe__feedback { direction: ltr; }
 .meal-swipe__feedback > span { unicode-bidi: isolate; }
