@@ -398,6 +398,47 @@
 @media (max-height: 560px) { .meal-camera__frame { top: 22%; height: 32%; }.meal-camera__tip { margin-bottom: 10px; padding: 7px 10px; font-size: 11px; }.meal-camera__footer { padding-top: 8px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }.meal-camera__header { padding-top: max(8px, env(safe-area-inset-top)); }.camera-shutter { width: 64px; height: 64px; justify-self: center; }.scan-result { height: 100%; }.scan-result__footer { padding-bottom: max(8px, env(safe-area-inset-bottom)); }.scan-result__log { min-height: 44px; }.scan-result__secondary { margin-top: 4px; }.scan-loading { padding-block: 16px; }.scan-loading__illustration { width: 74px; height: 90px; margin-block: 5px; } }
 @media (prefers-reduced-motion: reduce) { .scan-toast *, .scan-result { animation: none; }.camera-shutter > span, .center-camera, .journal-water__cups i > span { transition: none; } }
 .appearance-switch, .app-switch { direction: ltr; }
+.body-progress { padding: 8px 0 23px; border-bottom: 1px solid var(--border); }
+.body-progress + .energy-summary { padding-top: 24px; }
+.body-progress > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
+.body-progress h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.body-progress > header > div { min-width: 0; }
+.body-progress > header p { margin: 6px 0 0; font-size: 11px; color: var(--muted); line-height: 1.5; }
+.body-progress__add { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 8px 13px; border: 1px solid var(--border); border-radius: 24px; color: var(--gold); font-size: 12px; flex-shrink: 0; }
+.body-progress__add svg { flex-shrink: 0; }
+.body-progress__empty { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 0 4px; color: var(--muted); font-size: 12px; }
+.body-progress__photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.body-progress__photos.is-single { grid-template-columns: minmax(0, 210px); }
+.body-progress__figure { margin: 0; min-width: 0; }
+.body-progress__image { display: block; width: 100%; aspect-ratio: 3 / 4; overflow: hidden; border-radius: 8px; background: var(--surface); }
+.body-progress__image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.body-progress__figure figcaption { display: flex; align-items: center; gap: 2px; margin-top: 6px; }
+.body-progress__figure figcaption label { flex: 1; min-width: 0; }
+.body-progress__figure figcaption label > span { display: block; margin: 5px 0 2px; color: var(--muted); font-size: 10px; }
+.body-progress__figure select { width: 100%; min-width: 0; min-height: 44px; padding: 4px 0; color: var(--text); background: var(--bg); border: 0; }
+.body-progress__figure time { flex: 1; font-size: 12px; color: var(--muted); }
+.body-progress__figure .icon-command { flex-shrink: 0; width: 32px; height: 44px; color: var(--muted); }
+.body-progress__interval { margin: 8px 0 0; color: var(--muted); font-size: 11px; text-align: center; }
+.body-progress__error { margin: 12px 0; color: var(--danger); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.body-progress__error p { margin: 0 0 8px; }
+.body-progress__error button { display: inline-flex; gap: 7px; align-items: center; min-height: 44px; color: var(--gold); }
+.body-photo-overlay { position: absolute; inset: 0; z-index: 110; display: flex; align-items: flex-end; background: #0009; padding-top: max(16px, env(safe-area-inset-top)); }
+.body-photo-editor { width: 100%; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 16px 20px max(24px, env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; border: 1px solid var(--border); background: var(--bg); }
+.body-photo-editor > header, .body-photo-viewer > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.body-photo-editor h2, .body-photo-viewer h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.body-photo-editor .icon-command, .body-photo-viewer .icon-command { width: 44px; height: 44px; flex-shrink: 0; }
+.body-photo-editor .app-field { margin: 12px 0 16px; }
+.body-photo-editor .app-field input { min-width: 0; width: 100%; min-height: 46px; color-scheme: dark; }
+[data-theme="light"] .body-photo-editor .app-field input { color-scheme: light; }
+.body-photo-editor__preview { display: grid; place-items: center; height: min(32dvh, 260px); min-height: 100px; background: var(--surface); border-radius: 8px; color: var(--muted); overflow: hidden; }
+.body-photo-editor__preview img { width: 100%; height: 100%; object-fit: contain; min-height: 0; }
+.body-photo-editor__tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 13px 0 22px; }
+.body-photo-editor__tools button { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 46px; padding: 8px; border: 1px solid var(--border); border-radius: 24px; color: var(--gold); font-size: 13px; }
+.body-photo-editor__tools svg { flex-shrink: 0; }
+.body-photo-viewer { position: absolute; inset: 0; z-index: 110; display: flex; flex-direction: column; gap: 14px; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); background: var(--bg); }
+.body-photo-viewer > header { flex-shrink: 0; }
+.body-photo-viewer > img { display: block; flex: 1; min-height: 0; width: 100%; object-fit: contain; }
+@media (max-width: 350px) { .body-progress__photos { gap: 8px; }.body-progress__add { padding-inline: 10px; }.body-photo-editor { padding-inline: 16px; } }
 [dir="rtl"] .lucide-chevron-left, [dir="rtl"] .lucide-chevron-right { transform: scaleX(-1); }
 [dir="rtl"] .kalo-shell .text-left { text-align: right; }
 [dir="rtl"] .kalo-shell .text-right { text-align: left; }

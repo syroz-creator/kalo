@@ -1,4 +1,11 @@
 export const errorMessages: Record<string, readonly [string, string]> = {
+  'Other data exported. Progress photos could not be included. Please try again.': ['صدّرنا باقي البيانات، بس صور التقدّم ما انضافت. جرّب كمان مرّة.', 'הנתונים האחרים יוצאו, אך תמונות ההתקדמות לא נכללו. נא לנסות שוב.'],
+  'Choose a photo smaller than 25 MB.': ['اختار صورة أصغر من ٢٥ ميغابايت.', 'יש לבחור תמונה קטנה מ-25 MB.'],
+  'Your progress photos could not be opened. They have not been deleted. Please try again.': ['ما قدرنا نفتح صور التقدّم. الصور ما انحذفت. جرّب كمان مرّة.', 'לא הצלחנו לפתוח את תמונות ההתקדמות. הן לא נמחקו. נא לנסות שוב.'],
+  'Choose a valid photo and a date that is not in the future.': ['اختار صورة صالحة وتاريخ مش بالمستقبل.', 'יש לבחור תמונה תקינה ותאריך שאינו בעתיד.'],
+  'A progress photo already exists for this date. Reopen the photo form to replace it.': ['في صورة تقدّم بهالتاريخ. افتح إضافة الصورة كمان مرّة عشان تستبدلها.', 'כבר קיימת תמונת התקדמות בתאריך הזה. יש לפתוח שוב את טופס התמונה כדי להחליף אותה.'],
+  'Your progress photo was not saved. Please free some device storage and try again.': ['صورة التقدّم ما انحفظت. فضّي شوي مساحة عالجهاز وجرّب كمان مرّة.', 'תמונת ההתקדמות לא נשמרה. יש לפנות מקום במכשיר ולנסות שוב.'],
+  'Your progress photo could not be deleted. Please try again.': ['ما قدرنا نحذف صورة التقدّم. جرّب كمان مرّة.', 'לא הצלחנו למחוק את תמונת ההתקדמות. נא לנסות שוב.'],
   'Camera access is turned off. Allow Kalo to use your camera in your device settings, then try again.': ['صلاحية الكاميرا مسكّرة. اسمح لـ Kalo يستخدم الكاميرا من إعدادات الجهاز وبعدين جرّب.', 'הגישה למצלמה כבויה. יש לאפשר ל-Kalo להשתמש במצלמה בהגדרות המכשיר ולנסות שוב.'],
   'The camera is not available on this device. Choose a photo from your library instead.': ['الكاميرا مش متوفّرة عهالجهاز. اختار صورة من المعرض بدلها.', 'המצלמה אינה זמינה במכשיר הזה. אפשר לבחור תמונה מהספרייה במקום.'],
   'Enter your Gemini API key.': ['حط مفتاح Gemini API تبعك.', 'יש להזין את מפתח ה-Gemini API שלך.'],

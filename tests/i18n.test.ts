@@ -8,7 +8,7 @@ import { errorMessages } from '../src/i18n/errors';
 import { createMealAnalyzer } from '../src/services/mealAnalyzer';
 
 const catalog = { ...messages, ...errorMessages };
-const components = ['TodayTab', 'ProgressTab', 'RecipesTab', 'SettingsTab', 'ContactSheet', 'AiMealScanner', 'MealCamera', 'MealScanLoading', 'ToastAnimation', 'MealScanResult', 'MealIngredientForm', 'EditLoggedModal', 'OnboardingModal', 'ManualMealModal', 'BarcodeMealModal', 'GoalCelebration', 'GeminiKeySettings', 'MealPortionEditor', 'ProductPortionControls', 'PlanSettings', 'NumberPicker', 'OpeningSplash', 'MealRow', 'LanguageSelector'];
+const components = ['TodayTab', 'ProgressTab', 'BodyProgress', 'RecipesTab', 'SettingsTab', 'ContactSheet', 'AiMealScanner', 'MealCamera', 'MealScanLoading', 'ToastAnimation', 'MealScanResult', 'MealIngredientForm', 'EditLoggedModal', 'OnboardingModal', 'ManualMealModal', 'BarcodeMealModal', 'GoalCelebration', 'GeminiKeySettings', 'MealPortionEditor', 'ProductPortionControls', 'PlanSettings', 'NumberPicker', 'OpeningSplash', 'MealRow', 'LanguageSelector'];
 // The parser is part of the existing Vite toolchain; inspect messages without matching code with regexes.
 function visit(node: any, callback: (node: any) => void) {
   if (!node || typeof node !== 'object') return;
@@ -47,7 +47,7 @@ test('reachable screens have no untranslated static JSX or missing catalog entri
 });
 
 test('all friendly service and storage errors are translated', () => {
-  const paths = ['src/services/mealApi.ts', 'src/services/mealAnalyzer.ts', 'src/services/contact.ts', 'src/services/barcodeFood.ts', 'src/services/barcodeReader.ts', 'src/services/mealImage.ts', 'src/services/native.ts', 'src/services/storage.ts', 'src/utils/useMealHistory.ts', 'src/utils/mealAnalysis.ts'];
+  const paths = ['src/services/mealApi.ts', 'src/services/mealAnalyzer.ts', 'src/services/contact.ts', 'src/services/barcodeFood.ts', 'src/services/barcodeReader.ts', 'src/services/mealImage.ts', 'src/services/native.ts', 'src/services/storage.ts', 'src/services/bodyProgress.ts', 'src/services/progressPhoto.ts', 'src/utils/useBodyProgress.ts', 'src/utils/useMealHistory.ts', 'src/utils/mealAnalysis.ts'];
   function check(node: any) {
     if (node?.type === 'Literal' && typeof node.value === 'string' && node.value) assert.ok(Object.hasOwn(catalog, node.value), `missing error: ${node.value}`);
     else if (node?.type === 'ConditionalExpression') { check(node.consequent); check(node.alternate); }

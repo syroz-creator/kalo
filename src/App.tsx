@@ -7,6 +7,7 @@ import { calculateEnergyNeeds } from './utils/calculator';
 import { getTodayKey } from './utils/date';
 import { TodayTab } from './components/TodayTab';
 import { ProgressTab } from './components/ProgressTab';
+import { loadBodyPhotos } from './services/bodyProgress';
 import { RecipesTab } from './components/RecipesTab';
 import { SettingsTab } from './components/SettingsTab';
 import { AiMealScanner } from './components/AiMealScanner';
@@ -207,8 +208,11 @@ export default function App() {
     setIsAiSnapModalOpen(false);
     setManualMode('describe'); setManualMeal(meal);
   };
-  const exportData = () => {
-    const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: userProfile, meals: loggedItems, workouts, recipes, water: waterLogs, waterUnit: 'ml', savedMealCopies: exportSavedMealCopies() }, null, 2)], { type: 'application/json' }));
+  const exportData = async () => {
+    let bodyProgress;
+    try { bodyProgress = await loadBodyPhotos(); }
+    catch { showToast('Other data exported. Progress photos could not be included. Please try again.'); }
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: userProfile, meals: loggedItems, workouts, recipes, water: waterLogs, waterUnit: 'ml', savedMealCopies: exportSavedMealCopies(), bodyProgress }, null, 2)], { type: 'application/json' }));
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `kalo-${getTodayKey()}.json`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
@@ -218,7 +222,7 @@ export default function App() {
     <div className="app-surface" inert={opening || dialogOpen}>
       <main className="app-main">
         {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} waterMl={waterLogs[selectedDate] ?? 0} onUpdateWaterMl={amount => { updateWater(amount); }} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
-        {activePage === 'progress' && <ProgressTab selectedDate={selectedDate} loggedItems={loggedItems} workouts={workouts} targetCalories={energyNeeds.tdee} onAddWorkout={workout => { setWorkouts(items => [{ ...workout, id: id(), createdAt: Date.now() }, ...items]); showToast('Workout logged'); }} onDeleteWorkout={itemId => setWorkouts(items => items.filter(item => item.id !== itemId))} />}
+        {activePage === 'progress' && <ProgressTab selectedDate={selectedDate} loggedItems={loggedItems} workouts={workouts} targetCalories={energyNeeds.tdee} onAddWorkout={workout => { setWorkouts(items => [{ ...workout, id: id(), createdAt: Date.now() }, ...items]); showToast('Workout logged'); }} onDeleteWorkout={itemId => setWorkouts(items => items.filter(item => item.id !== itemId))} onNativeCameraPendingChange={pending => { nativeCameraPending.current = pending; }} />}
         {activePage === 'recipes' && <RecipesTab recipes={recipes} onLogRecipeAsMeal={logRecipe} onRemoveRecipe={foodId => updateRecipes(items => items.filter(item => item.foodId !== foodId))} onOpenCamera={openCamera} />}
         {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { if (setLoggedItems(() => [])) { setWorkouts([]); showToast('History cleared'); } }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} sounds={sounds} onSoundsChange={setSounds} onExport={exportData} recoverableMeals={loadRecoverableMeals(loggedItems)} onRecoverMeal={item => { const saved = setLoggedItems(items => items.some(meal => meal.id === item.id) ? items : [item, ...items]); if (saved) showToast('Meal restored to its original day'); return saved; }} />}
       </main>

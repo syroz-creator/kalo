@@ -4,6 +4,7 @@ import { t, getLocale } from '../i18n';
 import type { LoggedItem, WorkoutItem, WorkoutType } from '../types';
 import { addDaysToKey, getDisplayDateInfo, getTodayKey } from '../utils/date';
 import { useDialogFocus } from '../utils/useDialogFocus';
+import { BodyProgress } from './BodyProgress';
 
 interface ProgressTabProps {
   selectedDate: string;
@@ -12,6 +13,7 @@ interface ProgressTabProps {
   targetCalories: number;
   onAddWorkout: (workout: Omit<WorkoutItem, 'id' | 'createdAt'>) => void;
   onDeleteWorkout: (id: string) => void;
+  onNativeCameraPendingChange?: (pending: boolean) => void;
 }
 
 const WORKOUT_TYPES = [
@@ -21,7 +23,7 @@ const WORKOUT_TYPES = [
   { type: 'hiit', label: 'HIIT', Icon: Zap },
 ] as const;
 
-export function ProgressTab({ selectedDate, loggedItems, workouts, targetCalories, onAddWorkout, onDeleteWorkout }: ProgressTabProps) {
+export function ProgressTab({ selectedDate, loggedItems, workouts, targetCalories, onAddWorkout, onDeleteWorkout, onNativeCameraPendingChange }: ProgressTabProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [workoutType, setWorkoutType] = useState<WorkoutType>('strength');
   const [workoutTitle, setWorkoutTitle] = useState('');
@@ -58,6 +60,7 @@ export function ProgressTab({ selectedDate, loggedItems, workouts, targetCalorie
         <h1>{t('Progress')}</h1>
         <button type="button" className="icon-command" aria-label={t('Log Workout')} title={t('Log Workout')} onClick={() => setIsAddModalOpen(true)}><Plus size={23} /></button>
       </header>
+      <BodyProgress onNativeCameraPendingChange={onNativeCameraPendingChange} />
       <section className="energy-summary" aria-label={t('Net Calories ({date})', { date: selectedDate === todayKey ? t('Today') : selectedDate })}>
         <div className="energy-summary__net"><span>{t('Net Calories ({date})', { date: selectedDate === todayKey ? t('Today') : selectedDate })}</span><p><strong>{netCalories.toLocaleString(getLocale())}</strong> {t('kcal net')}</p></div>
         <div className="energy-summary__goal"><span>{t('Goal')}</span><strong>{targetCalories.toLocaleString(getLocale())} {t('kcal')}</strong></div>

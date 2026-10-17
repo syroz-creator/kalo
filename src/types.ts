@@ -95,6 +95,12 @@ export interface LoggedItem {
 
 export type WorkoutType = 'strength' | 'cardio' | 'walk' | 'hiit' | 'sport';
 
+export interface BodyProgressPhoto {
+  date: string;
+  imageUrl: string;
+  createdAt: number;
+}
+
 export interface WorkoutItem {
   id: string;
   date: string; // YYYY-MM-DD
