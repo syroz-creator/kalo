@@ -234,7 +234,7 @@ export function loadRecoverableMeals(history: LoggedItem[]): LoggedItem[] {
 
 export function exportSavedMealCopies() {
   const copies: Record<string, string> = {};
-  for (const key of [STORAGE_KEYS.LOGGED_ITEMS, HISTORY_BACKUP, REMOVED_MEALS, UNREADABLE_HISTORY, PHOTO_RECIPES_KEY]) {
+  for (const key of [STORAGE_KEYS.LOGGED_ITEMS, HISTORY_BACKUP, REMOVED_MEALS, UNREADABLE_HISTORY, PHOTO_RECIPES_KEY, 'kalo_water_logs_v2', 'kalo_water_ml_v1']) {
     try { const raw = localStorage.getItem(key); if (raw !== null) copies[key] = raw; }
     catch { /* Export every readable copy without including keys or credentials. */ }
   }
@@ -287,12 +287,23 @@ export function saveRecipes(recipes: RecipeItem[]): void {
   }
 }
 
+function parseWaterLogs(raw: string | null, multiplier = 1): Record<string, number> | null {
+  if (raw === null) return null;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    const entries = Object.entries(value);
+    if (!entries.every(([date, amount]) => /^\d{4}-\d{2}-\d{2}$/.test(date) && typeof amount === 'number' && Number.isFinite(amount) && amount >= 0 && Number.isFinite(amount * multiplier))) return null;
+    return Object.fromEntries(entries.map(([date, amount]) => [date, amount * multiplier]));
+  } catch { return null; }
+}
+
+// The older log stored 250 ml cups. Preserve volumes when switching to eight slots.
 export function loadWaterLogs(): Record<string, number> {
   try {
-    const raw = localStorage.getItem('kalo_water_logs_v2');
-    if (raw) {
-      return JSON.parse(raw);
-    }
+    return parseWaterLogs(localStorage.getItem('kalo_water_ml_v1'))
+      ?? parseWaterLogs(localStorage.getItem('kalo_water_logs_v2'), 250)
+      ?? {};
   } catch (err) {
     console.error('Failed to load water logs', err);
   }
@@ -301,8 +312,12 @@ export function loadWaterLogs(): Record<string, number> {
 
 export function saveWaterLogs(logs: Record<string, number>): void {
   try {
-    localStorage.setItem('kalo_water_logs_v2', JSON.stringify(logs));
-  } catch (err) {
-    console.error('Failed to save water logs', err);
+    const original = localStorage.getItem('kalo_water_ml_v1');
+    if (original !== null && !parseWaterLogs(original)) throw new Error('Unreadable water log');
+    const data = JSON.stringify(logs);
+    if (!parseWaterLogs(data)) throw new Error('Invalid water log');
+    localStorage.setItem('kalo_water_ml_v1', data);
+  } catch {
+    throw new UserFacingError('Your water could not be saved. Please try again.');
   }
 }

@@ -1,5 +1,6 @@
 import type { AnalyzedFoodItem, MealAnalysisResult } from '../types';
 import { UserFacingError } from './userFacingError';
+import { validWaterMl } from './water';
 
 export function getMealDescription(value: string) {
   const description = value.trim();
@@ -36,18 +37,27 @@ export function normalizeMealAnalysis(value: unknown): MealAnalysisResult {
     throw new UserFacingError('We could not estimate this meal. Please try again.');
   }
   if (!value.items.length) throw new UserFacingError('No food was identified. Try a clear photo or describe the foods and portions in your meal.');
-  const items: AnalyzedFoodItem[] = value.items.map(item => {
+  let waterMl = 0;
+  const items: AnalyzedFoodItem[] = value.items.flatMap(item => {
     if (!isRecord(item) || typeof item.name !== 'string' || !item.name.trim() || typeof item.portion !== 'string') {
       throw new UserFacingError('We could not identify all the foods. Try a clearer photo or describe what you ate.');
     }
-    return {
+    if (item.isPlainWater === true) {
+      if (item.portionUnit !== 'ml' || typeof item.portionQuantity !== 'number' || item.portionQuantity <= 0 || !validWaterMl(item.portionQuantity)) {
+        throw new UserFacingError('We could not estimate the water amount. Try a clearer photo or include the bottle size.');
+      }
+      waterMl += item.portionQuantity;
+      return [];
+    }
+    return [{
       name: item.name.trim(), portion: item.portion,
       calories: nutrient(item.calories), protein: nutrient(item.protein),
       carbs: nutrient(item.carbs), fat: nutrient(item.fat),
       ...(typeof item.portionQuantity === 'number' && Number.isFinite(item.portionQuantity) && item.portionQuantity > 0 && ['g', 'ml', 'piece', 'serving'].includes(String(item.portionUnit)) ? { portionQuantity: item.portionQuantity, portionUnit: item.portionUnit as AnalyzedFoodItem['portionUnit'] } : {}),
       ...(typeof item.gramsPerPiece === 'number' && Number.isFinite(item.gramsPerPiece) && item.gramsPerPiece > 0 ? { gramsPerPiece: item.gramsPerPiece } : {}),
-    };
+    }];
   });
+  if (!validWaterMl(waterMl)) throw new UserFacingError('We could not estimate the water amount. Try a clearer photo or include the bottle size.');
   const total = (key: 'calories' | 'protein' | 'carbs' | 'fat') => items.reduce((sum, item) => sum + item[key], 0);
   return {
     dishName: value.dishName.trim(),
@@ -59,5 +69,6 @@ export function normalizeMealAnalysis(value: unknown): MealAnalysisResult {
     totalProtein: Math.round(total('protein') * 10) / 10,
     totalCarbs: Math.round(total('carbs') * 10) / 10,
     totalFat: Math.round(total('fat') * 10) / 10,
+    ...(waterMl > 0 ? { waterMl: Math.round(waterMl * 10) / 10 } : {}),
   };
 }

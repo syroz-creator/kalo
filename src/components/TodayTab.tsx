@@ -3,14 +3,15 @@ import { Apple, CalendarDays, ChevronLeft, ChevronRight, Droplets, Minus, Moon, 
 import type { DailyEnergyNeeds, LoggedItem, MealType } from '../types';
 import { addDaysToKey, getTodayKey, parseDateKey } from '../utils/date';
 import { MealRow } from './MealRow';
+import { waterGoalMl, waterSlotFill, waterSlotMl, waterSlots } from '../utils/water';
 
 interface TodayTabProps {
   selectedDate: string;
   onSelectDate: (date: string) => void;
   loggedItems: LoggedItem[];
   energyNeeds: DailyEnergyNeeds;
-  cupsDrank: number;
-  onUpdateWaterCups: (cups: number) => void;
+  waterMl: number;
+  onUpdateWaterMl: (amount: number) => void;
   onOpenLogModal: (meal: MealType) => void;
   onEditItem: (item: LoggedItem) => void;
   onRepeatItem: (item: LoggedItem) => void;
@@ -63,9 +64,9 @@ export function TodayTab(props: TodayTabProps) {
 
     <section className="journal-water" aria-label={t('Water')}>
       <Droplets size={22} />
-      <div className="journal-water__copy"><h2>{t('Water')}</h2><p><strong>{(props.cupsDrank * .25).toFixed(2)}</strong><span>{t('/ 2.50 L')}</span></p><div className="journal-water__cups" aria-hidden="true">{Array.from({ length: 10 }, (_, index) => <i key={index} data-filled={index < props.cupsDrank} />)}</div></div>
-      <button type="button" className="icon-command journal-water__minus" aria-label={t('Remove 1 cup of water')} title={t('Remove 250 ml')} disabled={props.cupsDrank <= 0} onClick={() => props.onUpdateWaterCups(props.cupsDrank - 1)}><Minus size={18} /></button>
-      <button type="button" className="icon-command journal-water__plus" aria-label={t('Add 1 cup of water')} title={t('Add 250 ml')} disabled={props.cupsDrank >= 10} onClick={() => props.onUpdateWaterCups(props.cupsDrank + 1)}><Plus size={20} /></button>
+      <div className="journal-water__copy"><h2>{t('Water')}</h2><p><strong>{(props.waterMl / 1000).toFixed(2)}</strong><span>{t('/ 2.50 L')}</span></p><div className="journal-water__cups" aria-hidden="true">{Array.from({ length: waterSlots }, (_, index) => <i key={index} data-filled={waterSlotFill(props.waterMl, index) === 1}><span style={{ width: `${waterSlotFill(props.waterMl, index) * 100}%` }} /></i>)}</div></div>
+      <button type="button" className="icon-command journal-water__minus" aria-label={t('Remove 1 cup of water')} title={t('Remove 1 cup of water')} disabled={props.waterMl <= 0} onClick={() => props.onUpdateWaterMl(Math.max(0, props.waterMl - waterSlotMl))}><Minus size={18} /></button>
+      <button type="button" className="icon-command journal-water__plus" aria-label={t('Add 1 cup of water')} title={t('Add 1 cup of water')} disabled={props.waterMl >= waterGoalMl} onClick={() => props.onUpdateWaterMl(Math.min(waterGoalMl, props.waterMl + waterSlotMl))}><Plus size={20} /></button>
     </section>
 
     <section className="journal-food">

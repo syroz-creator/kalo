@@ -23,6 +23,7 @@ import { crossesDailyTarget } from './utils/goalCelebration';
 import { playSound, setSoundEnabled, unlockSound } from './services/sounds';
 import { useMealHistory } from './utils/useMealHistory';
 import { archiveMealPhotos, hydrateMealPhotos } from './services/mealPhotoStore';
+import { validWaterMl } from './utils/water';
 
 type ActivePage = 'today' | 'progress' | 'recipes' | 'settings';
 function preference(key: string) { try { return localStorage.getItem(key); } catch { return null; } }
@@ -89,7 +90,13 @@ export default function App() {
     window.addEventListener('kalo-photos-ready', photosReady);
     return () => { window.removeEventListener('storage', reloadRecipes); window.removeEventListener('kalo-photos-ready', photosReady); };
   }, [loggedItems]);
-  useEffect(() => { saveWaterLogs(waterLogs); }, [waterLogs]);
+  useEffect(() => {
+    const reload = () => setWaterLogs(loadWaterLogs());
+    const storage = (event: StorageEvent) => { if (event.key === 'kalo_water_ml_v1' || event.key === 'kalo_water_logs_v2' || event.key === null) reload(); };
+    const visible = () => { if (document.visibilityState === 'visible') reload(); };
+    window.addEventListener('storage', storage); window.addEventListener('pageshow', reload); document.addEventListener('visibilitychange', visible);
+    return () => { window.removeEventListener('storage', storage); window.removeEventListener('pageshow', reload); document.removeEventListener('visibilitychange', visible); };
+  }, []);
   useEffect(() => {
     try { localStorage.setItem('kalo-theme', theme); localStorage.setItem('kalo-reminders', String(reminders)); } catch { /* Preferences remain usable without storage. */ }
   }, [theme, reminders]);
@@ -157,14 +164,37 @@ export default function App() {
     setIsAiSnapModalOpen(true);
   };
   const scanItem = (result: MealScanDraft): Omit<LoggedItem, 'id' | 'createdAt'> => ({ foodId: result.foodId, date: selectedDate, meal: result.meal, name: result.dishName, quantity: 1, unit: result.portionDescription || 'portion', calories: result.totalCalories, protein: result.totalProtein, carbs: result.totalCarbs, fat: result.totalFat, source: 'ai_camera', imageUrl: result.imageUrl, ingredients: result.ingredients });
+  const updateWater = (change: number | ((previous: number) => number), date = selectedDate) => {
+    const current = loadWaterLogs();
+    const amountMl = typeof change === 'function' ? change(current[date] ?? 0) : change;
+    if (!Number.isFinite(amountMl) || amountMl < 0) return false;
+    const next = { ...current, [date]: amountMl };
+    try { saveWaterLogs(next); }
+    catch { setStorageError('Your water could not be saved. Please try again.'); return false; }
+    setWaterLogs(next);
+    if (storageError === 'Your water could not be saved. Please try again.' || storageError === 'Your meal was saved, but its water was not. Please add the water manually.') setStorageError('');
+    return true;
+  };
   const logScan = async (result: MealScanDraft) => {
-    const logged = await addMeal(scanItem(result));
-    if (!logged) return false;
-    if (logged.imageUrl) updateRecipes(items => [logged, ...items.filter(item => item.foodId !== logged.foodId)]);
+    const amountMl = result.waterMl ?? 0;
+    if (!validWaterMl(amountMl) || (!result.ingredients.length && amountMl === 0)) return false;
+    if (result.ingredients.length) {
+      const logged = await addMeal(scanItem(result));
+      if (!logged) return false;
+      if (logged.imageUrl) updateRecipes(items => [logged, ...items.filter(item => item.foodId !== logged.foodId)]);
+    }
+    if (amountMl > 0 && !updateWater(previous => previous + amountMl)) {
+      if (!result.ingredients.length) return false;
+      // Food is already saved. Do not offer a retry that would duplicate the meal.
+      setStorageError('Your meal was saved, but its water was not. Please add the water manually.');
+    } else if (!result.ingredients.length) {
+      showToast('Water logged'); setActivePage('today');
+    }
     setIsAiSnapModalOpen(false);
     return true;
   };
   const saveScan = async (result: MealScanDraft) => {
+    if (!result.ingredients.length) return false;
     const recipe = { ...scanItem(result), id: id(), createdAt: Date.now() };
     try { await archiveMealPhotos([recipe]); }
     catch { setStorageError('Your meal could not be saved. Please try again.'); return false; }
@@ -178,7 +208,7 @@ export default function App() {
     setManualMode('describe'); setManualMeal(meal);
   };
   const exportData = () => {
-    const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: userProfile, meals: loggedItems, workouts, recipes, water: waterLogs, savedMealCopies: exportSavedMealCopies() }, null, 2)], { type: 'application/json' }));
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: userProfile, meals: loggedItems, workouts, recipes, water: waterLogs, waterUnit: 'ml', savedMealCopies: exportSavedMealCopies() }, null, 2)], { type: 'application/json' }));
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `kalo-${getTodayKey()}.json`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
@@ -187,7 +217,7 @@ export default function App() {
   return <div className="app-root" onPointerDownCapture={unlockSound} onPointerUpCapture={unlockSound} onClickCapture={unlockSound} onKeyDownCapture={unlockSound}><div className="kalo-shell" data-theme={theme}>
     <div className="app-surface" inert={opening || dialogOpen}>
       <main className="app-main">
-        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} cupsDrank={waterLogs[selectedDate] ?? 0} onUpdateWaterCups={cups => setWaterLogs(logs => ({ ...logs, [selectedDate]: Math.max(0, Math.min(10, cups)) }))} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
+        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} waterMl={waterLogs[selectedDate] ?? 0} onUpdateWaterMl={amount => { updateWater(amount); }} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
         {activePage === 'progress' && <ProgressTab selectedDate={selectedDate} loggedItems={loggedItems} workouts={workouts} targetCalories={energyNeeds.tdee} onAddWorkout={workout => { setWorkouts(items => [{ ...workout, id: id(), createdAt: Date.now() }, ...items]); showToast('Workout logged'); }} onDeleteWorkout={itemId => setWorkouts(items => items.filter(item => item.id !== itemId))} />}
         {activePage === 'recipes' && <RecipesTab recipes={recipes} onLogRecipeAsMeal={logRecipe} onRemoveRecipe={foodId => updateRecipes(items => items.filter(item => item.foodId !== foodId))} onOpenCamera={openCamera} />}
         {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { if (setLoggedItems(() => [])) { setWorkouts([]); showToast('History cleared'); } }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} sounds={sounds} onSoundsChange={setSounds} onExport={exportData} recoverableMeals={loadRecoverableMeals(loggedItems)} onRecoverMeal={item => { const saved = setLoggedItems(items => items.some(meal => meal.id === item.id) ? items : [item, ...items]); if (saved) showToast('Meal restored to its original day'); return saved; }} />}

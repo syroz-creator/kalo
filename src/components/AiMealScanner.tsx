@@ -9,6 +9,7 @@ import { useDialogFocus } from '../utils/useDialogFocus';
 import { MealCamera } from './MealCamera';
 import { MealScanLoading } from './MealScanLoading';
 import { MealScanResult, type ScanDraftFields } from './MealScanResult';
+import { validWaterMl } from '../utils/water';
 
 interface AiMealScannerProps {
   targetMeal: MealType;
@@ -28,7 +29,7 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
   const [photo, setPhoto] = useState<string | null>(null);
   const [result, setResult] = useState<MealAnalysisResult | null>(null);
   const [editedItems, setEditedItems] = useState<AnalyzedFoodItem[]>([]);
-  const [draft, setDraft] = useState<ScanDraftFields>({ meal: targetMeal, name: '', details: '', nutrition: emptyNutrition });
+  const [draft, setDraft] = useState<ScanDraftFields>({ meal: targetMeal, name: '', details: '', waterMl: '0', nutrition: emptyNutrition });
   const [busy, setBusy] = useState<'save' | 'log' | null>(null);
   const [saved, setSaved] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -60,7 +61,7 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
       const data = await analyzeMealPhoto(imageUrl, controller.signal, details);
       if (controller.signal.aborted) return;
       setResult(data); setEditedItems(data.items); setResultDetails(details.trim());
-      setDraft(value => ({ ...value, name: data.dishName, details, nutrition: { calories: String(data.totalCalories), protein: String(data.totalProtein), carbs: String(data.totalCarbs), fat: String(data.totalFat) } }));
+      setDraft(value => ({ ...value, name: data.dishName, details, waterMl: String(data.waterMl ?? 0), nutrition: { calories: String(data.totalCalories), protein: String(data.totalProtein), carbs: String(data.totalCarbs), fat: String(data.totalFat) } }));
     } catch (failure) {
       if (!controller.signal.aborted) setError(getUserErrorMessage(failure, 'We could not estimate this meal. Please try again, or log it manually.'));
     } finally { if (!controller.signal.aborted) setAnalyzing(false); }
@@ -84,7 +85,7 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
   };
   const retake = () => {
     request.current?.abort(); setAnalyzing(false); setPhoto(null); setResult(null); setEditedItems([]); setSaved(false); setError('');
-    setDraft(value => ({ ...value, name: '', details: '', nutrition: emptyNutrition }));
+    setDraft(value => ({ ...value, name: '', details: '', waterMl: '0', nutrition: emptyNutrition }));
     setResultDetails(''); imageIdentity.current = '';
   };
   const cancelScan = () => {
@@ -92,21 +93,23 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     if (result) setDraft(value => ({ ...value, details: resultDetails }));
     else retake();
   };
-  const valid = draft.details.trim() === resultDetails && editedItems.some(item => item.portionQuantity !== 0) && !!draft.name.trim()
+  const hasFood = editedItems.some(item => item.portionQuantity !== 0);
+  const valid = draft.details.trim() === resultDetails && (hasFood || Number(draft.waterMl) > 0) && !!draft.name.trim()
+    && draft.waterMl.trim() !== '' && validWaterMl(Number(draft.waterMl))
     && fields.every(field => draft.nutrition[field].trim() !== '' && Number.isFinite(Number(draft.nutrition[field])) && Number(draft.nutrition[field]) >= 0);
   const persist = async (action: 'save' | 'log') => {
-    if (!result || !valid || savingRef.current) return;
+    if (!result || !valid || savingRef.current || (action === 'save' && !hasFood)) return;
     savingRef.current = true; setBusy(action); setError('');
-    const values = { calories: Number(draft.nutrition.calories), protein: Number(draft.nutrition.protein), carbs: Number(draft.nutrition.carbs), fat: Number(draft.nutrition.fat) };
+    const values = { calories: hasFood ? Number(draft.nutrition.calories) : 0, protein: hasFood ? Number(draft.nutrition.protein) : 0, carbs: hasFood ? Number(draft.nutrition.carbs) : 0, fat: hasFood ? Number(draft.nutrition.fat) : 0 };
     const activeItems = editedItems.filter(item => item.portionQuantity !== 0);
     const bases = totalFoodNutrition(activeItems);
     const ingredients = activeItems.map(item => ({ ...item, ...Object.fromEntries(fields.map(field => [field, bases[field] > 0 ? item[field] * values[field] / bases[field] : values[field] / activeItems.length])) }));
-    const entry: MealScanDraft = { foodId: foodId.current, meal: draft.meal, dishName: draft.name.trim(), totalCalories: Math.round(values.calories), totalProtein: Math.round(values.protein * 10) / 10, totalCarbs: Math.round(values.carbs * 10) / 10, totalFat: Math.round(values.fat * 10) / 10, portionDescription: ingredients.map(item => `${item.name} (${item.portion})`).join(', '), imageUrl: photo ?? undefined, ingredients };
+    const entry: MealScanDraft = { foodId: foodId.current, meal: draft.meal, dishName: draft.name.trim(), totalCalories: Math.round(values.calories), totalProtein: Math.round(values.protein * 10) / 10, totalCarbs: Math.round(values.carbs * 10) / 10, totalFat: Math.round(values.fat * 10) / 10, portionDescription: ingredients.map(item => `${item.name} (${item.portion})`).join(', '), imageUrl: photo ?? undefined, ingredients, waterMl: Number(draft.waterMl) };
     try {
       const success = await (action === 'save' ? onSaveMealResult(entry) : onLogMealResult(entry));
       if (success) { if (action === 'save') setSaved(true); else onClose(); }
-      else setError('Your meal could not be saved. Please try again.');
-    } catch (failure) { setError(getUserErrorMessage(failure, 'Your meal could not be saved. Please try again.')); }
+      else setError(hasFood ? 'Your meal could not be saved. Please try again.' : 'Your water could not be saved. Please try again.');
+    } catch (failure) { setError(getUserErrorMessage(failure, hasFood ? 'Your meal could not be saved. Please try again.' : 'Your water could not be saved. Please try again.')); }
     finally { savingRef.current = false; setBusy(null); }
   };
 

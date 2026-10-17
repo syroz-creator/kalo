@@ -60,6 +60,7 @@ export interface MealAnalysisResult {
   totalFat: number;
   notes?: string;
   imageUrl?: string;
+  waterMl?: number;
 }
 
 export interface MealScanDraft extends Pick<MealAnalysisResult, 'dishName' | 'totalCalories' | 'totalProtein' | 'totalCarbs' | 'totalFat'> {
@@ -68,6 +69,7 @@ export interface MealScanDraft extends Pick<MealAnalysisResult, 'dishName' | 'to
   portionDescription: string;
   imageUrl?: string;
   ingredients: AnalyzedFoodItem[];
+  waterMl?: number;
 }
 
 export interface LoggedItem {
