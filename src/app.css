@@ -352,20 +352,27 @@
 .scan-loading, .scan-error { width: 100%; max-width: 420px; max-height: 100%; overflow-y: auto; padding: 24px 20px 20px; border: 1px solid var(--border); border-radius: 25px; background: var(--surface); color: var(--text); text-align: center; }
 .scan-loading h2 { margin: 0; font-size: 20px; line-height: 1.4; font-weight: 700; }
 .scan-loading__illustration { position: relative; width: 140px; height: 126px; margin: 14px auto 12px; }
-.scan-toast { display: block; width: 100%; height: 100%; }
-.scan-toast__bread { animation: toast-dip 4.8s ease-in-out infinite; }
-.scan-toast__browning { opacity: 1; animation: toast-brown 4.8s ease-in-out infinite; }
-.scan-toast__lever { animation: toast-lever 4.8s ease-in-out infinite; }
-.scan-toast__heat { opacity: 0; animation: toast-heat 4.8s ease-in-out infinite; }
-.scan-toast__steam { opacity: 0; animation: toast-steam 4.8s ease-out infinite; }
+.scan-toast { --toast-cycle: 2.8s; display: block; width: 100%; height: 100%; }
+.scan-toast__bread { transform-origin: 80px 96px; animation: toast-dip var(--toast-cycle) ease-in-out infinite; }
+.scan-toast__browning { opacity: 1; animation: toast-brown var(--toast-cycle) ease-in-out infinite; }
+.scan-toast__lever { animation: toast-lever var(--toast-cycle) ease-in-out infinite; }
+.scan-toast__heat { opacity: 0; animation: toast-heat var(--toast-cycle) ease-in-out infinite; }
+.scan-toast__steam { opacity: 0; animation: toast-steam var(--toast-cycle) ease-out infinite; }
 .scan-loading__stage { min-height: 48px; display: grid; place-items: center; margin: 0; color: var(--scan-accent); font-size: 15px; line-height: 1.6; }
 .scan-loading__counting { min-height: 20px; margin: 4px 0 14px; font-size: 11px; line-height: 1.6; color: var(--muted); }
 .scan-loading > button { display: block; min-width: 90px; min-height: 40px; margin: 0 auto; padding: 8px 18px; border: 1px solid var(--border); border-radius: 22px; color: var(--muted); font-size: 14px; }
-@keyframes toast-dip { 0%, 8%, 88%, 100% { transform: translateY(0); } 22%, 65% { transform: translateY(42px); } 78% { transform: translateY(-9px); } }
-@keyframes toast-brown { 0%, 30%, 100% { opacity: 0; } 63%, 96% { opacity: 1; } }
-@keyframes toast-lever { 0%, 8%, 79%, 100% { transform: translateY(0); } 22%, 65% { transform: translateY(18px); } }
-@keyframes toast-heat { 0%, 18%, 68%, 100% { opacity: 0; } 30%, 60% { opacity: .75; } }
-@keyframes toast-steam { 0%, 65%, 100% { opacity: 0; transform: translateY(6px); } 76% { opacity: .8; transform: translateY(0); } 94% { opacity: 0; transform: translateY(-12px); } }
+@keyframes toast-dip {
+  0%, 6% { transform: translateY(0) rotate(0) scale(1); animation-timing-function: cubic-bezier(.4,0,.75,.5); }
+  20%, 38% { transform: translateY(70px) rotate(0) scale(1); animation-timing-function: cubic-bezier(.12,.82,.24,1); }
+  54% { transform: translateY(-15px) rotate(-3deg) scale(.98,1.04); animation-timing-function: cubic-bezier(.4,0,.65,1); }
+  64% { transform: translateY(2px) rotate(1.5deg) scale(1.025,.97); }
+  74% { transform: translateY(-2px) rotate(-.6deg) scale(.995,1.01); }
+  84%, 100% { transform: translateY(0) rotate(0) scale(1); }
+}
+@keyframes toast-brown { 0%, 20%, 38%, 100% { opacity: 1; } 21%, 24% { opacity: 0; } }
+@keyframes toast-lever { 0%, 6%, 60%, 100% { transform: translateY(0); } 20%, 38% { transform: translateY(16px); } 48% { transform: translateY(-2px); } }
+@keyframes toast-heat { 0%, 17%, 42%, 100% { opacity: 0; } 24%, 36% { opacity: .8; } 30% { opacity: .35; } }
+@keyframes toast-steam { 0%, 44% { opacity: 0; transform: translateY(5px); } 58% { opacity: .75; transform: translateY(-2px); } 78%, 100% { opacity: 0; transform: translateY(-14px); } }
 .scan-error > svg { display: block; margin: 0 auto 14px; color: var(--danger); }
 .scan-error h2 { font-size: 20px; margin: 0 0 12px; }.scan-error p { font-size: 13px; line-height: 1.6; color: var(--muted); margin-bottom: 20px; }
 .scan-error .text-back { justify-content: center; margin: 10px auto; }.scan-error__close { min-height: 44px; color: var(--muted); font-size: 13px; }
