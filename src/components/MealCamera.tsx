@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Camera, Images, Loader2, RefreshCw, ScanBarcode, Zap, ZapOff } from 'lucide-react';
 import { t } from '../i18n';
 import { cameraError, captureMealPhoto, isNativeApp } from '../services/native';
+import { openCameraStream } from '../services/cameraSession';
 
 export function MealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingChange }: {
   onPhoto: (image: string) => void;
@@ -23,7 +24,9 @@ export function MealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingC
 
   useEffect(() => {
     let disposed = false;
+    const controller = new AbortController();
     const stop = () => {
+      controller.abort();
       stream.current?.getTracks().forEach(track => track.stop());
       stream.current = null;
       if (video.current) video.current.srcObject = null;
@@ -33,14 +36,18 @@ export function MealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingC
     void (async () => {
       try {
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera not available');
-        const media = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
-        if (disposed || document.visibilityState === 'hidden') { media.getTracks().forEach(track => track.stop()); return; }
+        if (document.hidden) return;
+        const media = await openCameraStream(controller.signal);
+        if (disposed || controller.signal.aborted || document.visibilityState === 'hidden') { media.getTracks().forEach(track => track.stop()); return; }
         stream.current = media;
         const capabilities = media.getVideoTracks()[0]?.getCapabilities?.() as (MediaTrackCapabilities & { torch?: boolean }) | undefined;
         setTorchSupported(capabilities?.torch === true);
         if (video.current) { video.current.srcObject = media; await video.current.play(); }
+        media.getVideoTracks()[0]?.addEventListener('ended', () => {
+          if (!disposed && !controller.signal.aborted) { stop(); setError('Camera was interrupted. Please try again.'); }
+        }, { once: true });
       } catch (failure) {
-        if (!disposed) { stop(); setError(cameraError(failure).message); }
+        if (!disposed && !controller.signal.aborted) { stop(); setError(cameraError(failure).message); }
       } finally { if (!disposed) setOpening(false); }
     })();
     const visibility = () => {
@@ -49,7 +56,9 @@ export function MealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingC
     };
     document.addEventListener('visibilitychange', visibility);
     window.addEventListener('pagehide', stop);
-    return () => { disposed = true; stop(); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', stop); };
+    const resume = () => { if (document.visibilityState === 'visible' && controller.signal.aborted) setSession(value => value + 1); };
+    window.addEventListener('pageshow', resume);
+    return () => { disposed = true; stop(); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('pagehide', stop); window.removeEventListener('pageshow', resume); };
   }, [session]);
   useEffect(() => {
     const input = cameraInput.current;
@@ -98,7 +107,7 @@ export function MealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingC
   };
 
   return <div className="meal-camera">
-    <video ref={video} autoPlay muted playsInline aria-label={t('Meal camera')} onLoadedData={() => setReady(true)} />
+    <video ref={video} autoPlay muted playsInline aria-label={t('Meal camera')} onLoadedData={() => { if (stream.current?.active) setReady(true); }} />
     <div className="meal-camera__shade" aria-hidden="true" />
     <header className="meal-camera__header"><button type="button" onClick={onClose}>{t('Cancel')}</button><button type="button" className="icon-command" disabled={!torchSupported} aria-pressed={torch} aria-label={torchSupported ? t('Toggle flash') : t('Flash unavailable')} title={torchSupported ? t('Toggle flash') : t('Flash unavailable')} onClick={() => void toggleTorch()}>{torch ? <Zap size={25} /> : <ZapOff size={25} />}</button></header>
     <div className="meal-camera__frame" aria-hidden="true"><i /><i /><i /><i /></div>

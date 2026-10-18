@@ -25,6 +25,8 @@ import { playSound, setSoundEnabled, unlockSound } from './services/sounds';
 import { useMealHistory } from './utils/useMealHistory';
 import { archiveMealPhotos, hydrateMealPhotos } from './services/mealPhotoStore';
 import { validWaterMl } from './utils/water';
+import { RepeatMealSheet } from './components/RepeatMealSheet';
+import { watchCalendarDay } from './services/calendarDay';
 
 type ActivePage = 'today' | 'progress' | 'recipes' | 'settings';
 function preference(key: string) { try { return localStorage.getItem(key); } catch { return null; } }
@@ -34,6 +36,8 @@ export default function App() {
   useLanguage();
   const [activePage, setActivePage] = useState<ActivePage>('today');
   const [selectedDate, setSelectedDate] = useState(getTodayKey);
+  const [currentDay, setCurrentDay] = useState(getTodayKey);
+  useEffect(() => watchCalendarDay((next, previous) => { setCurrentDay(next); setSelectedDate(selected => selected === previous ? next : selected); }), []);
   const [userProfile, setUserProfile] = useState<UserProfile>(loadUserProfile);
   const [opening, setOpening] = useState(true);
   const finishOpening = useCallback(() => setOpening(false), []);
@@ -53,6 +57,7 @@ export default function App() {
   const [manualMode, setManualMode] = useState<'manual' | 'describe'>('manual');
   const [targetMeal, setTargetMeal] = useState<MealType>('lunch');
   const [editingItem, setEditingItem] = useState<LoggedItem | null>(null);
+  const [repeatOpen, setRepeatOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const showToast = (message: string, undo?: () => void) => {
@@ -108,7 +113,7 @@ export default function App() {
     try { const next = change(loadPhotoRecipes(loggedItems)); savePhotoRecipes(next); setRecipes(next); return true; }
     catch (error) { setStorageError(getUserErrorMessage(error, 'Your meal records are saved, but Recipes could not be saved. Export your data before closing Kalo.')); return false; }
   };
-  const today = getTodayKey();
+  const today = currentDay;
   const todayTotal = loggedItems.filter(item => item.date === today).reduce((total, item) => total + item.calories, 0);
   const previousGoal = useRef({ date: today, target: energyNeeds.tdee, total: todayTotal });
   const celebratedDays = useRef<Set<string> | null>(null);
@@ -153,7 +158,7 @@ export default function App() {
     setTargetMeal(hour < 11 ? 'breakfast' : hour < 16 ? 'lunch' : hour < 21 ? 'dinner' : 'snacks');
     setIsAiSnapModalOpen(true);
   };
-  const scanItem = (result: MealScanDraft): Omit<LoggedItem, 'id' | 'createdAt'> => ({ foodId: result.foodId, date: selectedDate, meal: result.meal, name: result.dishName, quantity: 1, unit: result.portionDescription || 'portion', calories: result.totalCalories, protein: result.totalProtein, carbs: result.totalCarbs, fat: result.totalFat, source: 'ai_camera', imageUrl: result.imageUrl, ingredients: result.ingredients });
+  const scanItem = (result: MealScanDraft): Omit<LoggedItem, 'id' | 'createdAt'> => ({ foodId: result.foodId, date: selectedDate, meal: result.meal, name: result.dishName, quantity: 1, unit: result.portionDescription || 'portion', calories: result.totalCalories, protein: result.totalProtein, carbs: result.totalCarbs, fat: result.totalFat, source: 'ai_camera', imageUrl: result.imageUrl, ingredients: result.ingredients, estimateNotes: result.estimateNotes });
   const updateWater = (change: number | ((previous: number) => number), date = selectedDate) => {
     const current = loadWaterLogs();
     const amountMl = typeof change === 'function' ? change(current[date] ?? 0) : change;
@@ -206,20 +211,27 @@ export default function App() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   const tabs = [{ key: 'today', label: 'Today', icon: NotebookPen }, { key: 'progress', label: 'Progress', icon: ChartNoAxesCombined }, { key: 'recipes', label: 'Recipes', icon: BookOpen }, { key: 'settings', label: 'Settings', icon: Settings2 }] as const;
-  const dialogOpen = !!manualMeal || !!editingItem || !!barcodeMeal || isAiSnapModalOpen || isOnboardingOpen;
+  const dialogOpen = !!manualMeal || !!editingItem || !!barcodeMeal || isAiSnapModalOpen || isOnboardingOpen || repeatOpen;
   return <div className="app-root" onPointerDownCapture={unlockSound} onPointerUpCapture={unlockSound} onClickCapture={unlockSound} onKeyDownCapture={unlockSound}><div className="kalo-shell" data-theme={theme}>
     <div className="app-surface" inert={opening || dialogOpen}>
       <main className="app-main">
-        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} waterMl={waterLogs[selectedDate] ?? 0} onUpdateWaterMl={amount => { updateWater(amount); }} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} />}
+        {activePage === 'today' && <TodayTab selectedDate={selectedDate} onSelectDate={setSelectedDate} loggedItems={loggedItems} energyNeeds={energyNeeds} waterMl={waterLogs[selectedDate] ?? 0} onUpdateWaterMl={amount => { updateWater(amount); }} onOpenLogModal={meal => { setManualMode('manual'); setManualMeal(meal); }} onEditItem={setEditingItem} onRepeatItem={repeatMeal} onDeleteItem={deleteMeal} onOpenRepeat={() => setRepeatOpen(true)} />}
         {activePage === 'progress' && <ProgressTab selectedDate={selectedDate} loggedItems={loggedItems} workouts={workouts} targetCalories={energyNeeds.tdee} onAddWorkout={workout => { setWorkouts(items => [{ ...workout, id: id(), createdAt: Date.now() }, ...items]); showToast('Workout logged'); }} onDeleteWorkout={itemId => setWorkouts(items => items.filter(item => item.id !== itemId))} />}
         {activePage === 'recipes' && <RecipesTab recipes={recipes} onLogRecipeAsMeal={logRecipe} onRemoveRecipe={foodId => updateRecipes(items => items.filter(item => item.foodId !== foodId))} onOpenCamera={openCamera} />}
-        {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { if (setLoggedItems(() => [])) { setWorkouts([]); showToast('History cleared'); } }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} sounds={sounds} onSoundsChange={setSounds} onExport={exportData} recoverableMeals={loadRecoverableMeals(loggedItems)} onRecoverMeal={item => { const saved = setLoggedItems(items => items.some(meal => meal.id === item.id) ? items : [item, ...items]); if (saved) showToast('Meal restored to its original day'); return saved; }} />}
+        {activePage === 'settings' && <SettingsTab profile={userProfile} onSaveProfile={setUserProfile} onOpenOnboarding={() => setIsOnboardingOpen(true)} onClearAllData={() => { if (setLoggedItems(() => [])) { setWorkouts([]); showToast('History cleared'); } }} theme={theme} onThemeChange={setTheme} reminders={reminders} onRemindersChange={setReminders} sounds={sounds} onSoundsChange={setSounds} onExport={exportData} onRestored={data => { setUserProfile(data.profile); setWorkouts(data.workouts); setWaterLogs(data.water); setRecipes(data.recipes); setStorageError(''); window.dispatchEvent(new Event('kalo-data-restored')); }} recoverableMeals={loadRecoverableMeals(loggedItems)} onRecoverMeal={item => { const saved = setLoggedItems(items => items.some(meal => meal.id === item.id) ? items : [item, ...items]); if (saved) showToast('Meal restored to its original day'); return saved; }} />}
       </main>
       <nav className="app-nav" aria-label={t("Main navigation")}>{tabs.map((tab, index) => <React.Fragment key={tab.key}>{index === 2 && <button type="button" className="center-camera" title={t("Photograph a meal")} aria-label={t("Take picture of meal")} onClick={openCamera}><Camera size={28} /></button>}<button type="button" aria-current={activePage === tab.key ? 'page' : undefined} onClick={() => setActivePage(tab.key)}><tab.icon size={24} strokeWidth={1.6} /><span>{t(String(tab.label))}</span></button></React.Fragment>)}</nav>
     </div>
     {toast && <div className="app-toast" role="status"><span>{t(String(toast.message))}</span>{toast.undo && <button type="button" onClick={() => { toast.undo?.(); setToast(null); }}>{t("Undo")}</button>}</div>}
     {storageError && <div className="storage-alert" role="alert"><p>{t(String(storageError))}</p><button type="button" onClick={exportData}>{t("Export data")}</button></div>}
     <div inert={opening} className="app-dialog-layer">
+      {repeatOpen && <RepeatMealSheet history={loggedItems} date={selectedDate} onClose={() => setRepeatOpen(false)} onLog={async (item, meal) => {
+        const logged = await addMeal({ ...item, date: selectedDate, meal });
+        if (!logged) return false;
+        playSound('repeat');
+        showToast('Meal logged again', () => setLoggedItems(items => items.filter(entry => entry.id !== logged.id)));
+        return true;
+      }} />}
       <OnboardingModal isOpen={isOnboardingOpen} initialProfile={userProfile} onComplete={profile => { setUserProfile(profile); setIsOnboardingOpen(false); showToast('Your daily target is set.'); }} />
       {manualMeal && <ManualMealModal meal={manualMeal} initialMode={manualMode} date={selectedDate} onClose={() => setManualMeal(null)} onLog={async item => !!(await addMeal(item))} />}
       <EditLoggedModal isOpen={!!editingItem} item={editingItem} onClose={() => setEditingItem(null)} onUpdate={(itemId, updates) => { if (!setLoggedItems(items => items.map(item => item.id === itemId ? { ...item, ...updates } : item))) return false; updateRecipes(items => items.map(item => item.foodId === editingItem?.foodId ? { ...item, ...updates } : item)); showToast('Meal updated'); return true; }} onDelete={deleteMeal} />

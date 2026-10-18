@@ -31,9 +31,10 @@ interface Props {
   busy: 'save' | 'log' | null;
   saved: boolean;
   error: string;
+  adjusted?: boolean;
 }
 
-export function MealScanResult({ result, items, draft, onChange, onItemsChange, onAddIngredient, onRefine, onLog, onSave, onRetake, onClose, valid, canRefine, busy, saved, error }: Props) {
+export function MealScanResult({ result, items, draft, onChange, onItemsChange, onAddIngredient, onRefine, onLog, onSave, onRetake, onClose, valid, canRefine, busy, saved, error, adjusted = false }: Props) {
   const [adding, setAdding] = useState(false);
   const [offset, setOffset] = useState(0);
   const drag = useRef<number | null>(null);
@@ -53,12 +54,13 @@ export function MealScanResult({ result, items, draft, onChange, onItemsChange, 
       </div>
       <div className="scan-result__scroll" inert={!!busy}>
         <div className="scan-result__summary">
-          <div className="scan-result__eyebrow"><span className="scan-result__estimate"><i />{t('Photo estimate')}</span></div>
+          <div className="scan-result__eyebrow"><span className="scan-result__estimate"><i />{t('Photo estimate')}</span>{adjusted && <span className="scan-result__adjusted">{t('Portions adjusted')}</span>}</div>
           <h1 id="scan-result-title" dir="auto">{draft.name || t('Your meal')}</h1>
           <p className="scan-result__description" dir="auto">{description || (waterMl > 0 ? t('Plain water') : t('No ingredients remaining.'))}{active.length > 3 && <> · {t('{count} more ingredients', { count: active.length - 3 })}</>}</p>
           <p className="scan-result__calories"><strong>{hasFood ? calories : waterMl}</strong><span>{hasFood || !waterMl ? t('kcal') : t('ml')}</span></p>
         </div>
         {hasFood && <div className="scan-result__macros">{(['protein', 'carbs', 'fat'] as const).map(field => <div className={`scan-macro scan-macro--${field}`} key={field}><i /><span>{t(field.charAt(0).toUpperCase() + field.slice(1))}</span><strong>{Number(Number(draft.nutrition[field] || 0).toFixed(1))}</strong><small>{t('g')}</small></div>)}</div>}
+        <div className="scan-assumptions"><strong>{t('Original portion assumptions')}</strong><p>{t('Estimated from a photo, not measured.')}</p>{result.notes && <p dir="auto">{result.notes}</p>}{result.referenceTip && <p dir="auto">{result.referenceTip}</p>}</div>
         {(result.waterMl ?? 0) > 0 && <label className="scan-water"><Droplets size={23} /><span className="scan-water__copy"><strong>{t('Water estimate')}</strong><small>{waterCups === 1 ? t('About 1 cup') : t('About {cups} cups', { cups: waterCups })}</small></span><span className="scan-water__amount"><input aria-label={t('Water amount (ml)')} type="number" inputMode="decimal" min="0" max={maxScanWaterMl} step="any" value={draft.waterMl} onChange={event => onChange({ waterMl: event.target.value })} /><span>{t('ml')}</span></span></label>}
         {!!result.items.length && <h2 className="scan-result__ingredients-title">{t('Ingredients')}</h2>}
         <MealPortionEditor items={result.items} onChange={onItemsChange} compact removable />
@@ -67,8 +69,6 @@ export function MealScanResult({ result, items, draft, onChange, onItemsChange, 
         <details className="scan-result__correction"><summary><SlidersHorizontal size={19} /><span>{t('Adjust this estimate')}</span><ChevronDown size={18} /></summary><div className="app-field"><label htmlFor="photo-portion-details">{t('Portion or label details (optional)')}</label><textarea id="photo-portion-details" rows={2} maxLength={2000} value={draft.details} placeholder={t('e.g. 2 biscuits, 25 g total; label: 124 kcal per packet')} onChange={event => onChange({ details: event.target.value })} /></div><button type="button" className="primary-command" disabled={!canRefine} onClick={onRefine}><RefreshCw size={18} />{t('Update estimate')}</button></details>
         {hasFood && <><label className="scan-result__meal">{t('Meal')}<select value={draft.meal} onChange={event => onChange({ meal: event.target.value as MealType })}>{(['breakfast', 'lunch', 'dinner', 'snacks'] as const).map(value => <option key={value} value={value}>{t(value.charAt(0).toUpperCase() + value.slice(1))}</option>)}</select></label>
         <details className="scan-result__manual"><summary><SquarePen size={18} /><span>{t('Edit nutrition')}</span><ChevronDown size={18} /></summary><label className="app-field">{t('Meal name')}<input value={draft.name} onChange={event => onChange({ name: event.target.value })} /></label><div className="manual-nutrients">{(['calories', 'protein', 'carbs', 'fat'] as const).map(field => <label className="app-field" key={field}>{t(field.charAt(0).toUpperCase() + field.slice(1))} ({field === 'calories' ? t('kcal') : t('g')})<input type="number" inputMode="decimal" min="0" step="any" value={draft.nutrition[field]} onChange={event => onChange({ nutrition: { ...draft.nutrition, [field]: event.target.value } })} /></label>)}</div></details></>}
-        {result.notes && <p className="scan-result__note" dir="auto">{result.notes}</p>}
-        {result.referenceTip && <p className="scan-result__note" dir="auto">{result.referenceTip}</p>}
         {error && <p className="scan-result__error" role="alert">{t(String(error))}</p>}
       </div>
       <footer className="scan-result__footer"><button type="button" className="primary-command scan-result__log" disabled={!valid || !!busy || adding} onClick={onLog}>{busy === 'log' ? <Loader2 size={20} className="animate-spin" /> : <Check size={20} />}{busy === 'log' ? t('Saving...') : hasFood ? t('Log meal · {calories} kcal', { calories }) : t('Log water · {amount} ml', { amount: waterMl })}</button><div className="scan-result__secondary">{hasFood && <button type="button" className={`scan-result__save${saved ? ' is-saved' : ''}`} disabled={!valid || !!busy || saved || adding} onClick={onSave}>{busy === 'save' ? <Loader2 size={18} className="animate-spin" /> : saved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}{saved ? t('Saved') : t('Save to Recipes')}</button>}<button type="button" className="scan-result__retake" disabled={!!busy} onClick={onRetake}><RefreshCw size={17} />{t('Take another photo')}</button></div></footer>

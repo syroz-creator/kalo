@@ -54,3 +54,24 @@ export async function deleteBodyPhoto(date: string) {
   try { await transaction<void>('readwrite', store => { store.delete(date); }); }
   catch { throw new UserFacingError('Your progress photo could not be deleted. Please try again.'); }
 }
+
+export async function mergeBodyPhotos(photos: BodyProgressPhoto[], commitRecords: () => () => void) {
+  let rollback: (() => void) | undefined;
+  try {
+    await transaction<void>('readwrite', store => {
+      const request = store.getAllKeys();
+      request.onsuccess = () => {
+        try {
+          const existing = new Set(request.result);
+          for (const photo of photos) if (!existing.has(photo.date)) store.add(photo);
+          // Commit metadata only after all photo writes succeed; abort both on failure.
+          const checkpoint = store.count();
+          checkpoint.onsuccess = () => {
+            try { rollback = commitRecords(); }
+            catch { store.transaction.abort(); }
+          };
+        } catch { store.transaction.abort(); }
+      };
+    });
+  } catch (failure) { rollback?.(); throw failure; }
+}

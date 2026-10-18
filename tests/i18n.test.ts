@@ -31,7 +31,7 @@ test('every catalog message has Arabic and Hebrew with matching interpolation fi
 });
 
 test('reachable screens have no untranslated static JSX or missing catalog entries', () => {
-  for (const path of ['src/App.tsx', ...components.map(name => `src/components/${name}.tsx`)]) {
+  for (const path of ['src/App.tsx', ...[...components, 'BackupSettings', 'RepeatMealSheet'].map(name => `src/components/${name}.tsx`)]) {
     const source = readFileSync(path, 'utf8');
     visit(parseAst(source, { lang: 'tsx' }), node => {
       if (node.type === 'JSXText') assert.ok(!/[a-z]/i.test(node.value), `${path}: ${node.value.trim()}`);
@@ -47,7 +47,7 @@ test('reachable screens have no untranslated static JSX or missing catalog entri
 });
 
 test('all friendly service and storage errors are translated', () => {
-  const paths = ['src/services/mealApi.ts', 'src/services/mealAnalyzer.ts', 'src/services/contact.ts', 'src/services/barcodeFood.ts', 'src/services/barcodeReader.ts', 'src/services/mealImage.ts', 'src/services/native.ts', 'src/services/storage.ts', 'src/services/bodyProgress.ts', 'src/services/progressPhoto.ts', 'src/utils/useBodyProgress.ts', 'src/utils/useMealHistory.ts', 'src/utils/mealAnalysis.ts'];
+  const paths = ['src/services/backup.ts', 'src/services/mealApi.ts', 'src/services/mealAnalyzer.ts', 'src/services/contact.ts', 'src/services/barcodeFood.ts', 'src/services/barcodeReader.ts', 'src/services/mealImage.ts', 'src/services/native.ts', 'src/services/storage.ts', 'src/services/bodyProgress.ts', 'src/services/progressPhoto.ts', 'src/utils/useBodyProgress.ts', 'src/utils/useMealHistory.ts', 'src/utils/mealAnalysis.ts'];
   function check(node: any) {
     if (node?.type === 'Literal' && typeof node.value === 'string' && node.value) assert.ok(Object.hasOwn(catalog, node.value), `missing error: ${node.value}`);
     else if (node?.type === 'ConditionalExpression') { check(node.consequent); check(node.alternate); }

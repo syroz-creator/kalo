@@ -64,6 +64,7 @@ export interface MealAnalysisResult {
 }
 
 export interface MealScanDraft extends Pick<MealAnalysisResult, 'dishName' | 'totalCalories' | 'totalProtein' | 'totalCarbs' | 'totalFat'> {
+  estimateNotes?: string;
   foodId: string;
   meal: MealType;
   portionDescription: string;
@@ -73,6 +74,7 @@ export interface MealScanDraft extends Pick<MealAnalysisResult, 'dishName' | 'to
 }
 
 export interface LoggedItem {
+  estimateNotes?: string;
   id: string;
   foodId: string;
   date: string; // YYYY-MM-DD

@@ -1,5 +1,5 @@
 import { t, getLocale } from '../i18n';
-import { Apple, CalendarDays, ChevronLeft, ChevronRight, Droplets, Minus, Moon, Plus, SquarePen, Sun, Sunrise, Utensils } from 'lucide-react';
+import { Apple, CalendarDays, ChevronLeft, ChevronRight, Droplets, Minus, Moon, Plus, Repeat2, SquarePen, Sun, Sunrise, Utensils } from 'lucide-react';
 import type { DailyEnergyNeeds, LoggedItem, MealType } from '../types';
 import { addDaysToKey, getTodayKey, parseDateKey } from '../utils/date';
 import { MealRow } from './MealRow';
@@ -16,6 +16,7 @@ interface TodayTabProps {
   onEditItem: (item: LoggedItem) => void;
   onRepeatItem: (item: LoggedItem) => void;
   onDeleteItem: (id: string) => boolean;
+  onOpenRepeat?: () => void;
 }
 
 const mealIcons = { breakfast: Sunrise, lunch: Sun, dinner: Moon, snacks: Apple };
@@ -70,7 +71,7 @@ export function TodayTab(props: TodayTabProps) {
     </section>
 
     <section className="journal-food">
-      <header><h2>{t('Food log')}</h2></header>
+      <header><h2>{t('Food log')}</h2>{loggedItems.length > 0 && props.onOpenRepeat && <button type="button" className="journal-repeat" onClick={props.onOpenRepeat}><Repeat2 size={17} />{t('Log again')}</button>}</header>
       {!items.length && <div className="journal-food__empty"><Utensils size={23} strokeWidth={1.4} /><p>{t('No meals logged yet.')}</p></div>}
       {(['breakfast', 'lunch', 'dinner', 'snacks'] as MealType[]).map(meal => {
         const group = items.filter(item => item.meal === meal);

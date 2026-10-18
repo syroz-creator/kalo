@@ -15,8 +15,8 @@ export function useMealHistory(photosEnabled = true) {
   const current = useRef(items);
   const revision = useRef(0);
   const withPhotos = useCallback((meals: LoggedItem[]) => {
-    const photos = new Map(current.current.filter(item => item.imageUrl).map(item => [item.foodId, item.imageUrl]));
-    return meals.map(item => !item.imageUrl && photos.has(item.foodId) ? { ...item, imageUrl: photos.get(item.foodId) } : item);
+    const photos = new Map(current.current.filter(item => item.imageUrl).map(item => [item.photoId || item.foodId, item.imageUrl]));
+    return meals.map(item => !item.imageUrl && photos.has(item.photoId || item.foodId) ? { ...item, imageUrl: photos.get(item.photoId || item.foodId) } : item);
   }, []);
   const hydrate = useCallback((meals: LoggedItem[]) => {
     if (!photosEnabled) return;
@@ -44,6 +44,7 @@ export function useMealHistory(photosEnabled = true) {
     document.addEventListener('visibilitychange', visible);
     window.addEventListener('kalo-photo-save-failed', photoFailure);
     window.addEventListener('kalo-photos-ready', photosReady);
+    window.addEventListener('kalo-data-restored', reload);
     return () => {
       revision.current++;
       window.removeEventListener('storage', storage);
@@ -51,6 +52,7 @@ export function useMealHistory(photosEnabled = true) {
       document.removeEventListener('visibilitychange', visible);
       window.removeEventListener('kalo-photo-save-failed', photoFailure);
       window.removeEventListener('kalo-photos-ready', photosReady);
+      window.removeEventListener('kalo-data-restored', reload);
     };
   }, [hydrate, withPhotos, photosEnabled]);
   const update = useCallback((change: (previous: LoggedItem[]) => LoggedItem[]) => {

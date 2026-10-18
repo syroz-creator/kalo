@@ -7,6 +7,8 @@ import { PlanSettings } from './PlanSettings';
 import { GeminiKeySettings } from './GeminiKeySettings';
 import { LanguageSelector } from './LanguageSelector';
 import { ContactSheet } from './ContactSheet';
+import { BackupSettings } from './BackupSettings';
+import type { restoreBackup } from '../services/backup';
 
 interface SettingsTabProps {
   profile: UserProfile;
@@ -20,14 +22,16 @@ interface SettingsTabProps {
   sounds: boolean;
   onSoundsChange: (enabled: boolean) => void;
   onExport: () => void;
+  onRestored: (data: Awaited<ReturnType<typeof restoreBackup>>) => void;
   recoverableMeals: LoggedItem[];
   onRecoverMeal: (item: LoggedItem) => boolean;
 }
 
 export function SettingsTab(props: SettingsTabProps) {
-  const [view, setView] = useState<'main' | 'plan' | 'notifications' | 'gemini' | 'recovery'>('main');
+  const [view, setView] = useState<'main' | 'plan' | 'notifications' | 'gemini' | 'recovery' | 'backup'>('main');
   const [permissionError, setPermissionError] = useState('');
   const calories = calculateEnergyNeeds(props.profile).tdee;
+  if (view === 'backup') return <BackupSettings onBack={() => setView('main')} onRestored={props.onRestored} />;
   const enableReminders = async () => {
     setPermissionError('');
     if (props.reminders) { props.onRemindersChange(false); return; }
@@ -53,7 +57,7 @@ export function SettingsTab(props: SettingsTabProps) {
         <ContactSheet />
       </div></section>
       <section><h2>{t("Your data")}</h2><div className="settings-group">
-        <button type="button" className="settings-row" onClick={props.onExport}><span className="settings-symbol"><Download size={21} /></span><span className="settings-row__label">{t("Export my data")}</span><ChevronRight size={17} /></button>
+        <button type="button" className="settings-row" onClick={() => setView('backup')}><span className="settings-symbol"><Download size={21} /></span><span className="settings-row__label">{t('Backup & restore')}</span><ChevronRight size={17} /></button>
         <button type="button" className="settings-row" onClick={() => setView('recovery')}><span className="settings-symbol"><RotateCcw size={21} /></span><span className="settings-row__label">{t("Recover meals")}</span><span className="settings-row__value">{props.recoverableMeals.length}</span><ChevronRight size={17} /></button>
         <button type="button" className="settings-row" onClick={() => { if (window.confirm(t('Clear all logged meals and workouts from your history?'))) props.onClearAllData(); }}><span className="settings-symbol settings-symbol--health"><Trash2 size={21} /></span><span className="settings-row__label">{t("Clear meal & workout history")}</span><ChevronRight size={17} /></button>
       </div></section>
