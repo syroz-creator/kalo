@@ -41,19 +41,28 @@ export function mealForStorage(item: LoggedItem): LoggedItem {
 }
 
 export function archiveMealPhotos(items: LoggedItem[]) {
-  const writes: Promise<void>[] = [];
+  const writes = new Set<Promise<void>>();
+  const photos = new Map<string, string>();
   for (const item of items) {
     if (!item.imageUrl?.startsWith('data:')) continue;
     const photoId = compactMeal(item).photoId!;
     if (stored.has(photoId)) continue;
-    let write = pending.get(photoId);
-    if (!write) {
-      write = photoTransaction<void>('readwrite', store => { store.put(item.imageUrl, photoId); })
-        .then(() => { stored.add(photoId); notify('kalo-photos-ready'); })
-        .finally(() => pending.delete(photoId));
-      pending.set(photoId, write);
-    }
-    writes.push(write);
+    const write = pending.get(photoId);
+    if (write) writes.add(write);
+    else photos.set(photoId, item.imageUrl);
+  }
+  if (photos.size) {
+    // Migrate a photo batch atomically, then refresh consumers once, not per photo.
+    const write = photoTransaction<void>('readwrite', store => {
+      for (const [photoId, image] of photos) store.put(image, photoId);
+    }).then(() => {
+      for (const photoId of photos.keys()) stored.add(photoId);
+      notify('kalo-photos-ready');
+    }).finally(() => {
+      for (const photoId of photos.keys()) pending.delete(photoId);
+    });
+    for (const photoId of photos.keys()) pending.set(photoId, write);
+    writes.add(write);
   }
   return Promise.all(writes).then(() => {});
 }
@@ -71,6 +80,7 @@ export async function hydrateMealPhotos(items: LoggedItem[]) {
   });
   // A missing archive must not look like a state change and restart hydration.
   if (!photos.size) return items;
+  for (const photoId of photos.keys()) stored.add(photoId);
   return items.map(item => photos.has(item.photoId!) ? { ...item, imageUrl: photos.get(item.photoId!) } : item);
 }
 

@@ -68,7 +68,7 @@ export function MealRow({ item, onEdit, onRepeat, onDelete }: { item: LoggedItem
           if (event.target === event.currentTarget && gesture.current) { gesture.current = null; setDragging(false); setOffset(0); }
         }}>
         <button type="button" className="meal-row__open" disabled={!!committed} onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } onEdit(); }}>
-          {item.imageUrl ? <img src={item.imageUrl} alt="" draggable={false} className="meal-row__photo" /> : <span className="meal-row__photo meal-row__placeholder"><Utensils size={24} /></span>}
+          {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" decoding="async" draggable={false} className="meal-row__photo" /> : <span className="meal-row__photo meal-row__placeholder"><Utensils size={24} /></span>}
           <span className="meal-row__copy"><strong>{item.name}</strong><span className="meal-row__time">{new Date(item.createdAt).toLocaleTimeString(getLocale(), { hour: 'numeric', minute: '2-digit' })}</span><span className="meal-row__macros"><span><i className="protein-dot" /><bdi dir="ltr">{Math.round(item.protein)}{t("g P")}</bdi></span><span><i className="carbs-dot" /><bdi dir="ltr">{Math.round(item.carbs)}{t("g C")}</bdi></span><span><i className="fat-dot" /><bdi dir="ltr">{Math.round(item.fat)}{t("g F")}</bdi></span></span></span>
           <span className="meal-row__calories"><strong>{item.calories.toLocaleString(getLocale())}</strong><small>{t("kcal")}</small></span>
         </button>

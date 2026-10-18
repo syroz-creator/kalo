@@ -35,14 +35,14 @@ export default function App() {
   const [activePage, setActivePage] = useState<ActivePage>('today');
   const [selectedDate, setSelectedDate] = useState(getTodayKey);
   const [userProfile, setUserProfile] = useState<UserProfile>(loadUserProfile);
-  const { items: loggedItems, update: setLoggedItems, error: storageError, setError: setStorageError } = useMealHistory();
+  const [opening, setOpening] = useState(true);
+  const finishOpening = useCallback(() => setOpening(false), []);
+  const { items: loggedItems, update: setLoggedItems, error: storageError, setError: setStorageError } = useMealHistory(!opening);
   const [workouts, setWorkouts] = useState<WorkoutItem[]>(loadWorkouts);
   const [recipes, setRecipes] = useState<LoggedItem[]>(() => loadPhotoRecipes(loggedItems));
   const [waterLogs, setWaterLogs] = useState<Record<string, number>>(loadWaterLogs);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => preference('kalo-theme') === 'light' ? 'light' : 'dark');
   const [reminders, setReminders] = useState(() => preference('kalo-reminders') === 'true');
-  const [opening, setOpening] = useState(true);
-  const finishOpening = useCallback(() => setOpening(false), []);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => !userProfile.hasCompletedOnboarding);
   const [isAiSnapModalOpen, setIsAiSnapModalOpen] = useState(false);
   const [barcodeMeal, setBarcodeMeal] = useState<MealType | null>(null);
@@ -65,13 +65,14 @@ export default function App() {
   useEffect(() => { saveUserProfile(userProfile); }, [userProfile]);
   useEffect(() => { saveWorkouts(workouts); }, [workouts]);
   useEffect(() => {
+    if (opening) return;
     let cancelled = false;
     void archiveMealPhotos(recipes).then(() => { if (!cancelled) savePhotoRecipes(loadPhotoRecipes(recipes)); })
       .catch(() => { if (!cancelled) setStorageError('Your meal records are safe, but Recipes could not be saved. Export a backup before closing Kalo.'); });
     void hydrateMealPhotos(recipes).then(items => { if (!cancelled && items !== recipes) setRecipes(items); })
       .catch(() => { if (!cancelled) setStorageError('Some saved photos could not be opened. Your meal records have not been deleted.'); });
     return () => { cancelled = true; };
-  }, [recipes, setStorageError]);
+  }, [recipes, setStorageError, opening]);
   useEffect(() => {
     const reloadRecipes = (event: StorageEvent) => { if (event.key === 'kalo_photo_recipes_v1' || event.key === null) setRecipes(loadPhotoRecipes(loggedItems)); };
     const photosReady = () => setRecipes(loadPhotoRecipes(loggedItems));

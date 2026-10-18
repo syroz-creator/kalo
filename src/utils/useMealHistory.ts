@@ -4,7 +4,7 @@ import { loadLoggedItems, readLoggedHistory, saveLoggedItems } from '../services
 import { hydrateMealPhotos, queueMealPhotos } from '../services/mealPhotoStore';
 import { getUserErrorMessage } from './userFacingError';
 
-export function useMealHistory() {
+export function useMealHistory(photosEnabled = true) {
   const recoveryNotice = 'Kalo opened a previous saved copy of your meals. Some recent entries may be missing. Export a backup before clearing anything.';
   const [initial] = useState(() => {
     try { const saved = readLoggedHistory(); return { items: saved.items, error: saved.recovered ? recoveryNotice : '' }; }
@@ -19,15 +19,18 @@ export function useMealHistory() {
     return meals.map(item => !item.imageUrl && photos.has(item.foodId) ? { ...item, imageUrl: photos.get(item.foodId) } : item);
   }, []);
   const hydrate = useCallback((meals: LoggedItem[]) => {
+    if (!photosEnabled) return;
     const version = ++revision.current;
     void hydrateMealPhotos(meals).then(hydrated => {
       if (version !== revision.current || hydrated === meals) return;
       current.current = hydrated; setItems(hydrated);
     }).catch(() => setError('Your meal records are saved, but some photos could not be opened. Export a backup before clearing any data.'));
-  }, []);
+  }, [photosEnabled]);
   useEffect(() => {
-    queueMealPhotos(current.current);
-    hydrate(current.current);
+    if (photosEnabled) {
+      queueMealPhotos(current.current);
+      hydrate(current.current);
+    }
     const reload = () => {
       try { const saved = readLoggedHistory(); const latest = withPhotos(saved.items); current.current = latest; setItems(latest); hydrate(latest); if (saved.recovered) setError(recoveryNotice); }
       catch (failure) { setError(getUserErrorMessage(failure, 'Your saved meals could not be opened.')); }
@@ -49,7 +52,7 @@ export function useMealHistory() {
       window.removeEventListener('kalo-photo-save-failed', photoFailure);
       window.removeEventListener('kalo-photos-ready', photosReady);
     };
-  }, [hydrate, withPhotos]);
+  }, [hydrate, withPhotos, photosEnabled]);
   const update = useCallback((change: (previous: LoggedItem[]) => LoggedItem[]) => {
     try {
       // Read the saved copy at action time, so a resumed tab cannot overwrite newer meals.

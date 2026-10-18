@@ -177,7 +177,8 @@
 .opening-splash__letters { font-size: 110px; }
 .opening-splash__plate { transform-origin: 200px 138px; animation: opening-plate var(--opening-duration) cubic-bezier(.22,.72,.2,1) both; }
 .opening-splash__dish { fill: var(--surface); animation: opening-dish var(--opening-duration) ease both; }
-.opening-splash__outline { stroke-dasharray: 1; stroke-dashoffset: 1; transform: rotate(-90deg); transform-origin: 200px 138px; animation: opening-outline var(--opening-duration) ease both; }
+.opening-splash__outline { stroke-dasharray: 421; stroke-dashoffset: 421; transform: rotate(-90deg); transform-origin: 200px 138px; animation: opening-outline var(--opening-duration) ease both; }
+.opening-splash__weight { animation: opening-weight var(--opening-duration) ease both; }
 .opening-splash__rim { animation: opening-rim var(--opening-duration) ease both; }
 .opening-splash__fork { animation: opening-fork var(--opening-duration) ease both; }
 .opening-splash__spoon { animation: opening-spoon var(--opening-duration) ease both; }
@@ -188,8 +189,9 @@
 .opening-splash__wordmark { display: none; font-size: 96px; line-height: 1.3; padding: 0 14px; max-width: 100%; color: var(--gold); }
 .opening-splash__skip { position: absolute; inset-inline-end: 22px; bottom: max(22px, env(safe-area-inset-bottom)); width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 50%; color: var(--muted); }
 @keyframes opening-plate { 0% { opacity: 0; transform: scale(.88); } 9% { opacity: 1; transform: scale(1.035); } 21%, 46% { opacity: 1; transform: scale(1); } 73%, 100% { opacity: 1; transform: translate(79px, 36px) scale(.4); } }
-@keyframes opening-outline { 0%, 4% { stroke-dashoffset: 1; stroke-width: 6; } 27%, 52% { stroke-dashoffset: 0; stroke-width: 6; } 73%, 100% { stroke-dashoffset: 0; stroke-width: 22; } }
-@keyframes opening-dish { 0% { opacity: 0; fill: var(--surface); } 17%, 48% { opacity: 1; fill: var(--surface); } 73%, 100% { opacity: 1; fill: var(--bg); } }
+@keyframes opening-outline { 0%, 4% { stroke-dashoffset: 421; } 27%, 100% { stroke-dashoffset: 0; } }
+@keyframes opening-weight { 0%, 52% { opacity: 0; } 73%, 100% { opacity: 1; } }
+@keyframes opening-dish { 0% { opacity: 0; } 17%, 48% { opacity: 1; } 73%, 100% { opacity: 0; } }
 @keyframes opening-rim { 0% { opacity: 0; transform: scale(.9); } 22%, 47% { opacity: 1; transform: scale(1); } 62%, 100% { opacity: 0; transform: scale(1); } }
 @keyframes opening-fork { 0%, 4% { opacity: 0; transform: translate(-25px, 8px) rotate(-6deg); } 24%, 43% { opacity: 1; transform: translate(0, 0) rotate(0); } 61%, 100% { opacity: 0; transform: translate(-25px, 8px) rotate(-6deg); } }
 @keyframes opening-spoon { 0%, 8% { opacity: 0; transform: translate(25px, -8px) rotate(6deg); } 28%, 43% { opacity: 1; transform: translate(0, 0) rotate(0); } 61%, 100% { opacity: 0; transform: translate(25px, -8px) rotate(6deg); } }

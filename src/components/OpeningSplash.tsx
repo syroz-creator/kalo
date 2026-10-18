@@ -39,7 +39,8 @@ export function OpeningSplash({ onComplete }: { onComplete: () => void }) {
         <g className="opening-splash__plate">
           <circle className="opening-splash__dish" cx="200" cy="138" r="67" />
           <circle className="opening-splash__rim" cx="200" cy="138" r="53" fill="none" stroke="var(--border)" strokeWidth="2" />
-          <circle className="opening-splash__outline" cx="200" cy="138" r="67" fill="none" stroke="var(--gold)" strokeWidth="6" strokeLinecap="round" pathLength="1" />
+          <circle className="opening-splash__outline" cx="200" cy="138" r="67" fill="none" stroke="var(--gold)" strokeWidth="6" strokeLinecap="round" />
+          <circle className="opening-splash__weight" cx="200" cy="138" r="67" fill="none" stroke="var(--gold)" strokeWidth="22" />
           <g className="opening-splash__apple">
             <path d="M200 125c-12-10-34-5-39 13-8 31 11 60 37 60 28 0 47-31 39-60-5-18-25-23-37-13Z" fill="var(--fat)" />
             <path d="M173 141c-4 8-3 17 0 23" fill="none" stroke="var(--bg)" strokeOpacity=".22" strokeWidth="4" strokeLinecap="round" />

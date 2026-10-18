@@ -2,12 +2,16 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { readFileSync } from 'node:fs';
+import { parse } from 'postcss';
 import { OpeningSplash, openingDurationMs } from '../src/components/OpeningSplash';
 
 test('the opening uses a multi-stage brand mark, one accessible status and a skip action', () => {
   const markup = renderToStaticMarkup(createElement(OpeningSplash, { onComplete: () => {} }));
   assert.match(markup, /role="status" aria-label="Opening Kalo"/);
   assert.match(markup, /opening-splash__plate/);
+  assert.match(markup, /class="opening-splash__weight"[^>]*stroke-width="22"/);
+  assert.doesNotMatch(markup, /pathLength=/);
   assert.match(markup, /opening-splash__apple/);
   assert.match(markup, /opening-splash__fork/);
   assert.match(markup, /opening-splash__spoon/);
@@ -16,6 +20,20 @@ test('the opening uses a multi-stage brand mark, one accessible status and a ski
   assert.match(markup, /aria-label="Skip intro"/);
   assert.match(markup, /aria-hidden="true" focusable="false"/);
   assert.match(markup, /opening-splash__wordmark" aria-hidden="true">Kalo/);
+});
+
+test('the opening avoids animated stroke thickness and fill colors during its plate morph', () => {
+  const css = parse(readFileSync('src/app.css', 'utf8'));
+  let outlines = 0;
+  css.walkAtRules('keyframes', rule => {
+    if (!rule.params.startsWith('opening-')) return;
+    if (rule.params === 'opening-outline') outlines++;
+    rule.walkDecls(declaration => {
+      assert.ok(['transform', 'opacity', 'stroke-dashoffset'].includes(declaration.prop), `${rule.params}: ${declaration.prop}`);
+      if (declaration.prop === 'stroke-dashoffset') assert.equal(rule.params, 'opening-outline');
+    });
+  });
+  assert.equal(outlines, 1);
 });
 
 test('the longer sequence supplies its duration to CSS and stays under four seconds', () => {

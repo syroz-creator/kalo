@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { afterEach, beforeEach, test } from 'node:test';
 import { IDBFactory, IDBObjectStore } from 'fake-indexeddb';
 import type { LoggedItem } from '../src/types';
-import { archiveMealPhotos, hydrateMealPhotos } from '../src/services/mealPhotoStore';
+import { archiveMealPhotos, compactMeal, hydrateMealPhotos, mealForStorage } from '../src/services/mealPhotoStore';
 
 const original = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
 beforeEach(() => Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: new IDBFactory() }));
@@ -85,4 +85,61 @@ test('already hydrated and non-photo meals do not reopen the archive', async con
   const meals = [{ ...meal('inline'), imageUrl: 'data:image/png;base64,inline' }, { ...meal('manual'), photoId: undefined }];
   assert.equal(await hydrateMealPhotos(meals), meals);
   assert.equal(open.mock.callCount(), 0);
+});
+
+test('reading an archived photo never queues a redundant rewrite when recipes save', async context => {
+  await seed([['meal-preloaded', 'data:image/png;base64,preloaded']]);
+  const writes = context.mock.method(IDBObjectStore.prototype, 'put');
+  const hydrated = await hydrateMealPhotos([meal('preloaded')]);
+  await archiveMealPhotos(hydrated);
+  assert.equal(writes.mock.callCount(), 0);
+  assert.equal(hydrated[0].imageUrl, 'data:image/png;base64,preloaded');
+});
+
+test('legacy photos archive in one transaction and notify the UI once for the whole batch', async context => {
+  const open = context.mock.method(indexedDB, 'open');
+  const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  const events = new EventTarget();
+  let notifications = 0;
+  events.addEventListener('kalo-photos-ready', () => { notifications++; });
+  Object.defineProperty(globalThis, 'window', { configurable: true, value: events });
+  try {
+    const meals = Array.from({ length: 30 }, (_, index) => ({ ...meal(`batch-${index}`), photoId: undefined, imageUrl: `data:image/png;base64,batch${index}` }));
+    await archiveMealPhotos(meals);
+    assert.equal(open.mock.callCount(), 1);
+    assert.equal(notifications, 1);
+    assert.ok(meals.every(item => !mealForStorage(item).imageUrl && item.imageUrl));
+    const restored = await hydrateMealPhotos(meals.map(compactMeal));
+    assert.deepEqual(restored.map(item => item.imageUrl), meals.map(item => item.imageUrl));
+  } finally {
+    if (windowDescriptor) Object.defineProperty(globalThis, 'window', windowDescriptor);
+    else Reflect.deleteProperty(globalThis, 'window');
+  }
+});
+
+test('overlapping archive calls share pending photo writes without losing either batch', async context => {
+  const open = context.mock.method(indexedDB, 'open');
+  const writes = context.mock.method(IDBObjectStore.prototype, 'put');
+  const meals = ['overlap-a', 'overlap-b', 'overlap-c'].map(id => ({ ...meal(id), imageUrl: `data:image/png;base64,${id}` }));
+  await Promise.all([archiveMealPhotos(meals.slice(0, 2)), archiveMealPhotos(meals.slice(1))]);
+  assert.equal(open.mock.callCount(), 2);
+  assert.equal(writes.mock.callCount(), 3);
+  assert.deepEqual((await hydrateMealPhotos(meals.map(compactMeal))).map(item => item.imageUrl), meals.map(item => item.imageUrl));
+});
+
+test('failed batch migration retains every inline photo and can be safely retried', async context => {
+  const put = IDBObjectStore.prototype.put;
+  let attempts = 0;
+  const writes = context.mock.method(IDBObjectStore.prototype, 'put', function (this: InstanceType<typeof IDBObjectStore>, ...args: Parameters<typeof put>) {
+    if (++attempts === 2) throw new DOMException('Test storage failure', 'QuotaExceededError');
+    return Reflect.apply(put, this, args);
+  });
+  const meals = ['failed-batch-a', 'failed-batch-b'].map(id => ({ ...meal(id), photoId: undefined, imageUrl: `data:image/png;base64,${id}` }));
+  await assert.rejects(archiveMealPhotos(meals));
+  assert.ok(meals.every(item => mealForStorage(item) === item));
+  const compact = meals.map(compactMeal);
+  assert.equal(await hydrateMealPhotos(compact), compact);
+  writes.mock.restore();
+  await archiveMealPhotos(meals);
+  assert.deepEqual((await hydrateMealPhotos(compact)).map(item => item.imageUrl), meals.map(item => item.imageUrl));
 });
