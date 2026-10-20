@@ -83,7 +83,7 @@ export function createMealAnalyzer(ai: GoogleGenAI, configuredModel?: string) {
       ] }],
       config: {
         systemInstruction: `Write food names, readable portions, notes, and reference tips in ${outputLanguage === 'ar' ? 'natural conversational Palestinian Arabic (not formal Modern Standard Arabic)' : outputLanguage === 'he' ? 'Hebrew' : 'English'}. Keep brand names unchanged, JSON field names and portionUnit enum values in English, and nutrition values numeric.`,
-        responseMimeType: 'application/json', responseJsonSchema, temperature: 0.2,
+        responseMimeType: 'application/json', responseJsonSchema, temperature: 0.2, maxOutputTokens: 8192,
         thinkingConfig: ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash'].includes(name)
           ? { thinkingLevel: ThinkingLevel.MINIMAL }
           : name === 'gemini-3.8-flash' ? { thinkingLevel: ThinkingLevel.LOW }

@@ -34,11 +34,11 @@ test('web requests stay same-origin and native requests use the saved hosted ser
   assert.equal(getServerUrl(), defaultServer);
 });
 
-test('connection checks distinguish a static site, missing key and configured API', async () => {
+test('connection checks validate the contact server without requiring a shared Gemini key', async () => {
   mock.method(globalThis, 'fetch', async () => new Response('Not Found', { status: 404 }));
   await assert.rejects(checkServer(defaultServer), /Static Site/);
   mock.method(globalThis, 'fetch', async () => Response.json({ status: 'ok', hasGeminiKey: false }));
-  await assert.rejects(checkServer(defaultServer), /GEMINI_API_KEY/);
+  await checkServer(defaultServer);
   mock.method(globalThis, 'fetch', async () => Response.json({ status: 'wrong', hasGeminiKey: true }));
   await assert.rejects(checkServer(defaultServer), /not a Kalo/);
   mock.method(globalThis, 'fetch', async () => Response.json({ status: 'ok', hasGeminiKey: true }));

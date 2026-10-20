@@ -1,59 +1,52 @@
-# Kalo on your own iPhone
+# Kalo on iPhone
 
-The iOS app bundles Kalo's interface and keeps meals, recipes, water and your
-profile on the phone. Photo analysis connects directly to Gemini using the API
-key you enter on your device. No Render service or running Mac is needed.
+The Capacitor project is `ios/App/App.xcodeproj`, scheme `App`, bundle identifier
+`com.ahmaduwaida.kalo`. Meals, water, workouts and progress photos stay on the device.
+Estimates use the personal Gemini key entered in Settings, directly from the
+device. The hosted server is used for contact messages, not meal analysis.
 
-## First installation (free personal signing)
+## Build and Install
 
-1. Install Xcode from the Mac App Store and open it once to finish setup and
-   install iOS support. Capacitor 8 requires Xcode 26 or newer.
-2. In Xcode Settings > Accounts, sign in with your Apple Account.
-3. From this repository, run `npm install`, then `npm run ios:sync`, then
-   `npm run ios:open`.
-4. Connect your unlocked iPhone to the Mac with a cable and accept Trust prompts.
-5. Select the App project, then the App target > Signing & Capabilities. Enable
-   automatic signing and choose your Personal Team. If the bundle identifier is
-   unavailable, change it to a unique identifier and update capacitor.config.ts
-   to match before syncing again.
-6. Select your iPhone as the run destination and press Run. Enable Developer
-   Mode on the phone if Xcode requests it. If asked, trust your developer profile
-   in Settings > General > VPN & Device Management.
+1. Install full Xcode and iOS platform support.
+2. Run `npm ci`, `npm run lint`, `npm test` and `npm run ios:sync`.
+3. Run `npm run ios:open`.
+4. In App target > Signing & Capabilities, select your own team and automatic signing.
+   Keep signing credentials and personal team changes private.
+5. Connect an unlocked iPhone, trust the Mac, enable Developer Mode if requested,
+   select the phone as the run destination and press Run.
+6. If a macOS codesign prompt appears, authorize it in that dialog using the
+   login keychain password. Never share the password in chat.
+7. If iOS asks for developer trust, use Settings > General > VPN & Device Management
+   and trust only your own development account.
 
-Free provisioning expires after seven days. Reconnect the phone and run the
-project from Xcode again. Keep the same bundle identifier, and do not delete the
-app to renew signing; deleting it removes its local data.
+When the Mac still selects Command Line Tools, a single build can use:
+`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild ...`
+without changing the system-wide selection.
 
-## Gemini photo scanning
+## Meal Estimates
 
-1. Create a Gemini API key at https://aistudio.google.com/apikey.
-2. In Kalo, open Settings > Gemini API key, paste your key, and tap Check & save.
-3. Scan a meal. Photos go directly from the phone to Google Gemini.
+Open Settings > Gemini API key on the iPhone, enter your own key, review and
+confirm photo processing, then choose Check & save. The native app cannot inherit
+the key saved in Safari. Keys are deliberately excluded from backup exports.
 
-The check verifies that Gemini accepts the key and lists generation models;
-remaining quota and photo analysis are checked when you scan. Remove saved key
-deletes the device's copy, but does not revoke the key in Google AI Studio.
+The camera button opens the native camera without an invitation or API key.
+If a key is missing after taking a photo, Kalo offers key setup and manual logging.
+With a saved key, the photo proceeds directly to the estimate. Camera cancellation,
+permissions and gallery selection must also be tested on physical hardware.
 
-This personal-use mode stores the key in the app's local storage, not the iOS
-Keychain. It is not encrypted and someone with access to the app's storage can
-extract it. It is excluded from Kalo's data export and is never bundled in the
-source or a VITE_ variable. Each device/browser needs its own setup. Photo
-scanning needs internet; viewing local logs and manual logging do not.
+## Device Checks
 
-## Updates and data
+- Cold start, sharp vector opening and toaster animations, and reduced-motion alternatives.
+- Camera permission grant/denial, cancel, retry, photo library and app resume.
+- Successful food estimate, unclear photo, quota/network error and cancellation.
+- Portion correction, water beside food, logging once, recipe save and repeat logging.
+- Backup/restore, private progress photos, EN/AR/HE layout and light/dark themes.
 
-After code changes: `npm run ios:sync`, then Run in Xcode again. Sync rebuilds the
-web assets copied into the native project. Generated assets and personal Xcode
-signing state are excluded from git.
+Safari and native app storage are separate. Transfer records using backup/restore,
+not by deleting website data. Never uninstall the app merely to update its assets.
 
-The installed app has separate storage from Safari. Existing website records do
-not transfer automatically. This first setup does not implement import, native
-file sharing or native notification reminders; the existing browser export and
-notification APIs may not be available in the iOS web view. Do not delete the
-website records expecting them to already exist in the installed app.
+## Distribution Later
 
-## References
-
-- https://capacitorjs.com/docs/getting-started/environment-setup
-- https://capacitorjs.com/docs/ios
-- https://developer.apple.com/help/account/basics/about-your-developer-account
+Personal-device testing does not publish the app. TestFlight and App Store release
+are separate signing, membership and review workflows. Review provider terms,
+privacy disclosures and the personal-key approach before public distribution.

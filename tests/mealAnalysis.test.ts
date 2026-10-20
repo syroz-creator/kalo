@@ -167,8 +167,8 @@ test('a large meal preserves every detected portion instead of truncating ingred
   assert.equal(result.totalCalories, items.reduce((sum, item) => sum + item.calories, 0));
 });
 
-async function withServer(app: ReturnType<typeof createApp>, run: (url: string) => Promise<void>) {
-  const server: Server = app.listen(0, '127.0.0.1');
+async function withServer(run: (url: string) => Promise<void>) {
+  const server: Server = createApp().listen(0, '127.0.0.1');
   await once(server, 'listening');
   const address = server.address();
   assert(address && typeof address !== 'string');
@@ -176,48 +176,13 @@ async function withServer(app: ReturnType<typeof createApp>, run: (url: string) 
   finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 }
 
-const photoRequest = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageBase64: 'data:image/png;base64,aGVsbG8=', mimeType: 'image/jpeg' }) };
-
-test('the meal endpoint returns computed totals through the actual SDK', async () => {
-  const client = clientWithFetch(async () => generation(meal));
-  await withServer(createApp({ client }), async url => {
-    const response = await fetch(`${url}/api/analyze-meal`, photoRequest);
-    assert.equal(response.status, 200);
-    const result = await response.json();
-    assert.equal(result.data.totalCalories, 440);
-    assert.equal(result.data.totalProtein, 44.2);
-  });
-});
-
-test('the app starts without a key and returns an actionable configuration error', async () => {
-  await withServer(createApp({ apiKey: '' }), async url => {
-    assert.equal((await fetch(`${url}/api/health`)).status, 200);
-    const response = await fetch(`${url}/api/analyze-meal`, photoRequest);
-    assert.equal(response.status, 503);
-    assert.match((await response.json()).error, /contact the app owner.*log your meal manually/);
-    const invalid = await fetch(`${url}/api/analyze-meal`, { ...photoRequest, body: '{}' });
-    assert.equal(invalid.status, 400);
-  });
-});
-
-test('invalid API keys return an actionable error without exposing provider details', async () => {
-  const client = clientWithFetch(async () => jsonResponse({ error: { code: 400, status: 'INVALID_ARGUMENT', message: 'API key not valid. test-secret-value' } }, 400));
-  await withServer(createApp({ client }), async url => {
-    const response = await fetch(`${url}/api/analyze-meal`, photoRequest);
-    assert.equal(response.status, 503);
-    const result = await response.json();
-    assert.match(result.error, /API key/);
-    assert(!result.error.includes('test-secret-value'));
-  });
-});
-
-test('unexpected server-side provider errors never expose raw exception messages', async () => {
-  const client = clientWithFetch(async () => { throw new Error('The scan failed: HTTP 503 private-stack-trace'); });
-  await withServer(createApp({ client }), async url => {
-    const response = await fetch(`${url}/api/analyze-meal`, photoRequest);
-    assert.equal(response.status, 502);
-    const result = await response.json();
-    assert.match(result.error, /Please try again, or log your meal manually/);
-    assert.doesNotMatch(result.error, /HTTP|503|private-stack-trace/);
+test('the hosted server has no invite gate and never exposes shared-key meal generation', async () => {
+  await withServer(async url => {
+    assert.deepEqual(await (await fetch(`${url}/api/health`)).json(), { status: 'ok' });
+    for (const endpoint of ['/api/analyze-meal', '/api/beta/session']) {
+      const response = await fetch(`${url}${endpoint}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      assert.equal(response.status, 404);
+      assert.deepEqual(await response.json(), { success: false, error: 'This API endpoint is unavailable.' });
+    }
   });
 });

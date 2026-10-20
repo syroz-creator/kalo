@@ -39,6 +39,14 @@ test('scanning without a saved key asks for settings and makes no request', asyn
   assert.equal(fetch.mock.callCount(), 0);
 });
 
+test('provider age restrictions stop uploads without depending on an invite or hosted service', async t => {
+  saveGeminiKey('personal-test-key');
+  entries.set('kalo_user_profile_v2', JSON.stringify({ age: 17 }));
+  const fetch = t.mock.method(globalThis, 'fetch', async () => { throw new Error('Unexpected upload'); });
+  await assert.rejects(analyzeMealPhoto(photo), /adults aged 18/);
+  assert.equal(fetch.mock.callCount(), 0);
+});
+
 test('a photo goes directly to Gemini with the device key and computes nutrition totals', async t => {
   saveGeminiKey('personal-test-key');
   t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {

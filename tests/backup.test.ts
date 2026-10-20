@@ -30,9 +30,10 @@ test('backup round-trip includes archived meal, recipe and body photos but never
   entries.set('kalo_logged_items_v2', JSON.stringify([compactMeal(item)]));
   entries.set('kalo_photo_recipes_v1', JSON.stringify([compactMeal(item)]));
   entries.set('kalo-gemini-api-key', 'do-not-export');
+  entries.set('kalo-beta-access-v1', JSON.stringify({ token: 'private-beta-token' }));
   await saveBodyPhoto({ date: '2026-10-01', createdAt: 100, imageUrl: photo });
   const exported = JSON.stringify(await createBackup());
-  assert.doesNotMatch(exported, /do-not-export|gemini-api-key/);
+  assert.doesNotMatch(exported, /do-not-export|gemini-api-key|private-beta-token|beta-access/);
   const parsed = parseBackup(exported);
   assert.equal(parsed.meals[0].imageUrl, photo);
   assert.equal(parsed.recipes[0].imageUrl, photo);

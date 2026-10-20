@@ -5,14 +5,21 @@ import { createElement, Fragment } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { parse } from 'postcss';
 import { ToastAnimation } from '../src/components/ToastAnimation';
+import { ToastArtwork } from '../src/artwork/ToastArtwork';
 
 test('each toaster clips its moving bread to a unique slot without adding screen-reader announcements', () => {
-  const markup = renderToStaticMarkup(createElement(Fragment, null, createElement(ToastAnimation), createElement(ToastAnimation)));
+  const markup = renderToStaticMarkup(createElement(Fragment, null, createElement(ToastArtwork), createElement(ToastArtwork)));
   const slots = [...markup.matchAll(/<clipPath id="([^"]+)"/g)].map(match => match[1]);
   assert.equal(slots.length, 2);
   assert.equal(new Set(slots).size, 2);
   for (const slot of slots) assert.ok(markup.includes(`clip-path="url(#${slot})"`));
   assert.equal((markup.match(/aria-hidden="true" focusable="false"/g) ?? []).length, 2);
+});
+
+test('the live toaster renders scalable vectors without a fixed frame rate or raster download', () => {
+  const markup = renderToStaticMarkup(createElement(ToastAnimation));
+  assert.match(markup, /<svg class="scan-toast" viewBox="0 0 160 160"/);
+  assert.doesNotMatch(markup, /<img|<picture|\.gif/);
 });
 
 test('the bread dips fully inside, springs above its resting position and settles back without a loop jump', () => {

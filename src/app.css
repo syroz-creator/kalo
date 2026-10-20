@@ -46,6 +46,10 @@
 .backup-preview { margin-top: 26px; }.backup-preview dl > div { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 13px; }.backup-preview dd { font-variant-numeric: tabular-nums; }.backup-profile { display: flex; align-items: flex-start; gap: 10px; margin: 20px 0; font-size: 13px; line-height: 1.6; }.backup-profile input { flex-shrink: 0; margin-top: 4px; width: 18px; height: 18px; accent-color: var(--gold); }
 .scan-assumptions { margin: 18px 0; padding-block: 14px; border-block: 1px solid var(--border); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }.scan-assumptions > strong { font-weight: 600; }.scan-assumptions p { color: var(--muted); margin-top: 5px; }
 .scan-result__adjusted { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.gemini-key-consent { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.6; margin: 18px 0; }
+.gemini-key-consent input { flex-shrink: 0; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--gold); }
+.gemini-key-consent span { min-width: 0; overflow-wrap: anywhere; }
+.gemini-key-setup h1 { margin: 12px 0; font-size: 25px; line-height: 1.3; }
 .meals-empty { color: var(--muted); padding: 20px 0 25px; text-align: center; font-size: 12px; }
 .meal-group { margin-bottom: 16px; }
 .meal-group__heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 11px; color: var(--muted); }
@@ -183,6 +187,9 @@
 .opening-splash { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; background: var(--bg); animation: splash-away .38s ease calc(var(--opening-duration) - 380ms) both; }
 @font-face { font-family: "Fredoka"; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/fredoka-kalo.ttf') format('truetype'); }
 .opening-splash__scene { display: block; width: min(400px, calc(100% - 24px)); height: auto; aspect-ratio: 5 / 4; flex-shrink: 0; direction: ltr; overflow: visible; }
+/* Native vectors stay sharp at 4K; only moving pieces need compositing. */
+.opening-splash[data-playing="false"], .opening-splash[data-playing="false"] * { animation-play-state: paused; }
+.opening-splash__plate, .opening-splash__fork, .opening-splash__spoon, .opening-splash__apple, .opening-splash__leaf, .opening-splash__letter { will-change: transform, opacity; }
 .opening-splash__letters, .opening-splash__wordmark { font-family: "Fredoka", ui-rounded, system-ui, sans-serif; font-style: normal; font-weight: 600; }
 .opening-splash__letters { font-size: 110px; }
 .opening-splash__plate { transform-origin: 200px 138px; animation: opening-plate var(--opening-duration) cubic-bezier(.22,.72,.2,1) both; }
@@ -363,6 +370,12 @@
 .scan-loading h2 { margin: 0; font-size: 20px; line-height: 1.4; font-weight: 700; }
 .scan-loading__illustration { position: relative; width: 140px; height: 126px; margin: 14px auto 12px; }
 .scan-toast { --toast-cycle: 2.8s; display: block; width: 100%; height: 100%; }
+.scan-toast__bread, .scan-toast__lever, .scan-toast__steam { will-change: transform; }
+.scan-photo-access { position: absolute; inset: 0; overflow-y: auto; padding: max(20px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); background: var(--bg); }
+.scan-photo-access__preview { display: block; width: 100%; height: 150px; object-fit: cover; border-radius: 8px; }
+.scan-photo-access > .gemini-key-setup { margin-bottom: 20px; }
+.scan-photo-review { position: absolute; inset-inline: 24px; bottom: max(24px, env(safe-area-inset-bottom)); padding: 20px; background: var(--bg); border-radius: 8px; }
+.scan-photo-review .text-back, .scan-photo-access > .text-back { justify-content: center; }
 .scan-toast__bread { transform-origin: 80px 96px; animation: toast-dip var(--toast-cycle) ease-in-out infinite; }
 .scan-toast__browning { opacity: 1; animation: toast-brown var(--toast-cycle) ease-in-out infinite; }
 .scan-toast__lever { animation: toast-lever var(--toast-cycle) ease-in-out infinite; }
@@ -435,7 +448,7 @@
 .scan-ingredient-form { padding: 2px 0 14px; border-bottom: 1px solid var(--border); }.scan-ingredient-form .app-field { margin: 10px 0; }.scan-ingredient-form__portion { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }.scan-ingredient-form__actions { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; align-items: center; margin-top: 8px; }.scan-ingredient-form__actions .text-back { margin: 0; justify-content: center; }
 @media (max-width: 350px) { .scan-result__scroll { padding-inline: 12px; }.scan-result__summary { padding-inline: 13px; }.scan-result__summary h1 { font-size: 21px; }.meal-portion-editor--compact .portion-food { grid-template-columns: minmax(0, 1fr) 128px; gap: 4px; padding-inline: 9px; }.scan-result__secondary { gap: 3px; }.scan-result__save, .scan-result__retake { font-size: 11px; padding-inline: 7px; }.scan-macro { gap: 3px; }.meal-camera__controls { gap: 10px; } }
 @media (max-height: 560px) { .meal-camera__frame { top: 22%; height: 32%; }.meal-camera__tip { margin-bottom: 10px; padding: 7px 10px; font-size: 11px; }.meal-camera__footer { padding-top: 8px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }.meal-camera__header { padding-top: max(8px, env(safe-area-inset-top)); }.camera-shutter { width: 64px; height: 64px; justify-self: center; }.scan-result { height: 100%; }.scan-result__footer { padding-bottom: max(8px, env(safe-area-inset-bottom)); }.scan-result__log { min-height: 44px; }.scan-result__secondary { margin-top: 4px; }.scan-loading { padding-block: 16px; }.scan-loading__illustration { width: 74px; height: 90px; margin-block: 5px; } }
-@media (prefers-reduced-motion: reduce) { .scan-toast *, .scan-result { animation: none; }.camera-shutter > span, .center-camera, .journal-water__cups i > span { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .scan-toast *, .scan-result { animation: none; }.scan-toast *, .opening-splash * { will-change: auto; }.camera-shutter > span, .center-camera, .journal-water__cups i > span { transition: none; } }
 .appearance-switch, .app-switch { direction: ltr; }
 .body-progress { padding: 8px 0 23px; border-bottom: 1px solid var(--border); }
 .body-progress + .energy-summary { padding-top: 24px; }

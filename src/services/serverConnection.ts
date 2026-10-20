@@ -32,9 +32,8 @@ export async function checkServer(value: string) {
   const url = normalizeServerUrl(value);
   const response = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(20000) });
   if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
-    throw new Error('The photo API is not running here. Deploy a Node Web Service, not a Static Site.');
+    throw new Error('The Kalo server is not running here. Deploy a Node Web Service, not a Static Site.');
   }
   const body = await response.json();
   if (body.status !== 'ok') throw new Error('This address is not a Kalo meal server.');
-  if (body.hasGeminiKey !== true) throw new Error('The server is running but needs GEMINI_API_KEY in its environment.');
 }

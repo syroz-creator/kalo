@@ -17,10 +17,10 @@ export async function setNativeAppearance(theme: 'dark' | 'light') {
   await SystemBars.setStyle({ style: theme === 'dark' ? SystemBarsStyle.Dark : SystemBarsStyle.Light });
 }
 
-export async function captureMealPhoto(): Promise<string | null> {
+export async function captureMealPhoto(source: 'camera' | 'photos' = 'camera'): Promise<string | null> {
   try {
     const photo = await Camera.getPhoto({
-      source: CameraSource.Camera,
+      source: source === 'photos' ? CameraSource.Photos : CameraSource.Camera,
       resultType: CameraResultType.DataUrl,
       quality: 85,
       width: 1600,

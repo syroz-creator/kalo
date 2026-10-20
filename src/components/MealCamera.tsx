@@ -4,12 +4,62 @@ import { t } from '../i18n';
 import { cameraError, captureMealPhoto, isNativeApp } from '../services/native';
 import { openCameraStream } from '../services/cameraSession';
 
-export function MealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingChange }: {
+interface MealCameraProps {
   onPhoto: (image: string) => void;
   onClose: () => void;
   onBarcode: () => void;
   onNativeCameraPendingChange?: (pending: boolean) => void;
-}) {
+}
+
+export function MealCamera(props: MealCameraProps) {
+  return isNativeApp() ? <NativeMealCamera {...props} /> : <WebMealCamera {...props} />;
+}
+
+function NativeMealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingChange }: MealCameraProps) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const mounted = useRef(false);
+  const started = useRef(false);
+  const pending = useRef(false);
+  const callbacks = useRef({ onPhoto, onNativeCameraPendingChange });
+  callbacks.current = { onPhoto, onNativeCameraPendingChange };
+  const capture = async (source: 'camera' | 'photos' = 'camera') => {
+    if (pending.current) return;
+    pending.current = true; setBusy(true); setError('');
+    callbacks.current.onNativeCameraPendingChange?.(true);
+    try {
+      const image = await captureMealPhoto(source);
+      if (mounted.current && image) callbacks.current.onPhoto(image);
+    } catch (failure) { if (mounted.current) setError(cameraError(failure).message); }
+    finally {
+      pending.current = false;
+      callbacks.current.onNativeCameraPendingChange?.(false);
+      if (mounted.current) setBusy(false);
+    }
+  };
+  useEffect(() => {
+    mounted.current = true;
+    if (!started.current) { started.current = true; void capture(); }
+    return () => { mounted.current = false; };
+  }, []);
+  return <div className="meal-camera meal-camera--native" aria-busy={busy}>
+    <header className="meal-camera__header"><button type="button" disabled={busy} onClick={onClose}>{t('Cancel')}</button></header>
+    <div className="meal-camera__fallback">
+      {busy ? <><Loader2 size={30} className="animate-spin" /><span>{t('Opening camera...')}</span></> : <>
+        <Camera size={38} strokeWidth={1.3} />
+        {error && <p role="alert">{t(String(error))}</p>}
+        <button type="button" className="camera-retry" onClick={() => void capture()}><Camera size={18} />{t('Take a photo')}</button>
+      </>}
+    </div>
+    <footer className="meal-camera__footer"><div className="meal-camera__controls">
+      <button type="button" className="camera-tool" disabled={busy} onClick={() => void capture('photos')}><Images size={27} /><span>{t('Gallery')}</span></button>
+      <button type="button" className="camera-shutter" disabled={busy} aria-label={t('Take picture of meal')} onClick={() => void capture()}><span /></button>
+      <button type="button" className="camera-tool" disabled={busy} onClick={onBarcode}><ScanBarcode size={27} /><span>{t('Barcode')}</span></button>
+    </div></footer>
+  </div>;
+}
+
+function WebMealCamera({ onPhoto, onClose, onBarcode, onNativeCameraPendingChange }: MealCameraProps) {
   const video = useRef<HTMLVideoElement>(null);
   const stream = useRef<MediaStream | null>(null);
   const reader = useRef<FileReader | null>(null);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Camera, RefreshCw, SquarePen } from 'lucide-react';
 import { t } from '../i18n';
 import type { AnalyzedFoodItem, MealAnalysisResult, MealScanDraft, MealType } from '../types';
-import { analyzeMealPhoto } from '../services/mealApi';
+import { analyzeMealPhoto, getGeminiKey } from '../services/mealApi';
 import { getUserErrorMessage } from '../utils/userFacingError';
 import { totalFoodNutrition } from '../utils/mealPortions';
 import { useDialogFocus } from '../utils/useDialogFocus';
@@ -11,6 +11,7 @@ import { MealScanLoading } from './MealScanLoading';
 import { MealScanResult, type ScanDraftFields } from './MealScanResult';
 import { validWaterMl } from '../utils/water';
 import { prepareMealImage } from '../services/mealImage';
+import { GeminiKeySettings } from './GeminiKeySettings';
 
 interface AiMealScannerProps {
   targetMeal: MealType;
@@ -22,11 +23,13 @@ interface AiMealScannerProps {
   onClose: () => void;
   onNativeCameraPendingChange?: (pending: boolean) => void;
   onDescribeMeal?: () => void;
+  onLogManually?: () => void;
 }
 const fields = ['calories', 'protein', 'carbs', 'fat'] as const;
 const emptyNutrition = { calories: '', protein: '', carbs: '', fat: '' };
 
-export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, onLogMealResult, onSaveMealResult, onBarcode, onClose, onNativeCameraPendingChange, onDescribeMeal }: AiMealScannerProps) {
+export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, onLogMealResult, onSaveMealResult, onBarcode, onClose, onNativeCameraPendingChange, onDescribeMeal, onLogManually }: AiMealScannerProps) {
+  const [connected, setConnected] = useState(() => !!getGeminiKey());
   const [photo, setPhoto] = useState<string | null>(null);
   const [result, setResult] = useState<MealAnalysisResult | null>(null);
   const [editedItems, setEditedItems] = useState<AnalyzedFoodItem[]>([]);
@@ -40,10 +43,11 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
   const request = useRef<AbortController | null>(null);
   const imageIdentity = useRef('');
   const foodId = useRef('');
+  const handledInitialImage = useRef<string | null>(null);
   const savingRef = useRef(false);
   const close = () => { if (!savingRef.current) onClose(); };
   const dialog = useDialogFocus<HTMLDivElement>(true, close);
-  const phase = analyzing ? 'loading' : result ? 'result' : error ? 'error' : 'camera';
+  const phase = analyzing ? 'loading' : photo && !connected ? 'access' : result ? 'result' : error ? 'error' : photo ? 'preview' : 'camera';
   useEffect(() => {
     const root = dialog.current;
     const button = Array.from(root?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []).find(element => !element.closest('[inert]') && element.getClientRects().length > 0);
@@ -65,6 +69,7 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
         setResult(null); setEditedItems([]);
       }
       setPhoto(preview);
+      if (!connected) return;
       const data = await analyzeMealPhoto(preview, controller.signal, details);
       if (controller.signal.aborted) return;
       setResult(data); setEditedItems(data.items); setResultDetails(details.trim());
@@ -73,9 +78,15 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
     } catch (failure) {
       if (!controller.signal.aborted) setError(getUserErrorMessage(failure, 'We could not estimate this meal. Please try again, or log it manually.'));
     } finally { if (!controller.signal.aborted) setAnalyzing(false); }
-  }, []);
+  }, [connected]);
   useEffect(() => { setDraft(value => ({ ...value, meal: targetMeal })); }, [targetMeal]);
-  useEffect(() => { if (initialImage) void analyze(initialImage); return () => request.current?.abort(); }, [initialImage, analyze]);
+  useEffect(() => {
+    if (initialImage && initialImage !== handledInitialImage.current) {
+      handledInitialImage.current = initialImage;
+      void analyze(initialImage);
+    }
+  }, [initialImage, analyze]);
+  useEffect(() => () => { request.current?.abort(); handledInitialImage.current = null; }, []);
 
   const change = (changes: Partial<ScanDraftFields>) => {
     setDraft(value => ({ ...value, ...changes })); setSaved(false); setError('');
@@ -125,11 +136,20 @@ export function AiMealScanner({ targetMeal, initialImage, onChangeTargetMeal, on
   return <div ref={dialog} className={`scan-workspace${photo ? ' scan-workspace--photo' : ''}`} role="dialog" aria-modal="true" aria-label={t('Meal photo')} tabIndex={-1}>
     {!photo && !analyzing && !error && <MealCamera onPhoto={image => void analyze(image)} onClose={close} onBarcode={onBarcode} onNativeCameraPendingChange={onNativeCameraPendingChange} />}
     {photo && <img className="scan-workspace__photo" src={photo} alt={t('Meal preview')} />}
-    {analyzing ? <MealScanLoading onCancel={cancelScan} /> : result ? <MealScanResult
+    {analyzing ? <MealScanLoading onCancel={cancelScan} /> : photo && !connected ? <div className="scan-photo-access">
+      <img className="scan-photo-access__preview" src={photo} alt={t('Meal preview')} />
+      <GeminiKeySettings onBack={retake} inline onConnected={() => setConnected(true)} />
+      {onLogManually && <button type="button" className="primary-command" onClick={onLogManually}><SquarePen size={18} />{t('Log manually')}</button>}
+      <button type="button" className="text-back" onClick={close}>{t('Cancel')}</button>
+    </div> : result ? <MealScanResult
       result={result} items={editedItems} draft={draft} onChange={change} onItemsChange={updateItems} onAddIngredient={addIngredient}
       onRefine={() => { if (photo) { (document.activeElement as HTMLElement | null)?.blur(); void analyze(photo, draft.details); } }}
       onLog={() => void persist('log')} onSave={() => void persist('save')} onRetake={retake} onClose={close}
       valid={valid} canRefine={draft.details.trim() !== resultDetails} busy={busy} saved={saved} error={error} adjusted={adjusted}
-    /> : error && <div className="scan-error-backdrop"><section className="scan-error" role="alert"><AlertCircle size={30} /><h2>{t('Could not analyze photo')}</h2><p>{t(String(error))}</p>{photo && <button type="button" className="primary-command" onClick={() => void analyze(photo, draft.details)}><RefreshCw size={18} />{t('Try again')}</button>}<button type="button" className="text-back" onClick={retake}><Camera size={18} />{t('Take another photo')}</button>{onDescribeMeal && <button type="button" className="text-back" onClick={onDescribeMeal}><SquarePen size={18} />{t('Describe instead')}</button>}<button type="button" className="scan-error__close" onClick={close}>{t('Cancel')}</button></section></div>}
+    /> : error ? <div className="scan-error-backdrop"><section className="scan-error" role="alert"><AlertCircle size={30} /><h2>{t('Could not analyze photo')}</h2><p>{t(String(error))}</p>{photo && <button type="button" className="primary-command" onClick={() => void analyze(photo, draft.details)}><RefreshCw size={18} />{t('Try again')}</button>}<button type="button" className="text-back" onClick={retake}><Camera size={18} />{t('Take another photo')}</button>{onDescribeMeal && <button type="button" className="text-back" onClick={onDescribeMeal}><SquarePen size={18} />{t('Describe instead')}</button>}<button type="button" className="scan-error__close" onClick={close}>{t('Cancel')}</button></section></div> : photo && <div className="scan-photo-review">
+      <button type="button" className="primary-command" onClick={() => void analyze(photo, draft.details)}>{t('Estimate meal')}</button>
+      <button type="button" className="text-back" onClick={retake}><Camera size={18} />{t('Take another photo')}</button>
+      <button type="button" className="text-back" onClick={close}>{t('Cancel')}</button>
+    </div>}
   </div>;
 }

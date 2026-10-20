@@ -53,7 +53,7 @@ export function SettingsTab(props: SettingsTabProps) {
         <div className="settings-row"><span className="settings-symbol"><Volume2 size={21} /></span><span className="settings-row__label">{t("Sound effects")}</span><button type="button" role="switch" aria-label={t("Sound effects")} aria-checked={props.sounds} onClick={() => props.onSoundsChange(!props.sounds)} className={`app-switch ${props.sounds ? 'is-on' : ''}`}><span /></button></div>
         <div className="settings-row"><span className="settings-symbol"><Globe size={21} /></span><span className="settings-row__label">{t("Language")}</span><LanguageSelector /></div>
         <button type="button" className="settings-row" onClick={() => setView('notifications')}><span className="settings-symbol"><Bell size={21} /></span><span className="settings-row__label">{t("Notifications")}</span><ChevronRight size={17} /></button>
-        <button type="button" className="settings-row" onClick={() => setView('gemini')}><span className="settings-symbol"><KeyRound size={21} /></span><span className="settings-row__label">{t("Gemini API key")}</span><ChevronRight size={17} /></button>
+        <button type="button" className="settings-row" onClick={() => setView('gemini')}><span className="settings-symbol"><KeyRound size={21} /></span><span className="settings-row__label">{t('Gemini API key')}</span><ChevronRight size={17} /></button>
         <ContactSheet />
       </div></section>
       <section><h2>{t("Your data")}</h2><div className="settings-group">

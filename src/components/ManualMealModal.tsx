@@ -7,8 +7,11 @@ import { analyzeMealDescription } from '../services/mealApi';
 import { getUserErrorMessage } from '../utils/userFacingError';
 import { MealPortionEditor } from './MealPortionEditor';
 import { totalFoodNutrition } from '../utils/mealPortions';
+import { getGeminiKey } from '../services/mealApi';
+import { GeminiKeySettings } from './GeminiKeySettings';
 
 export function ManualMealModal({ meal: initialMeal, initialMode = 'manual', date, onClose, onLog }: { meal: MealType; initialMode?: 'manual' | 'describe'; date: string; onClose: () => void; onLog: (item: Omit<LoggedItem, 'id' | 'createdAt'>) => Promise<boolean> }) {
+  const [connected, setConnected] = useState(() => !!getGeminiKey());
   const [saving, setSaving] = useState(false);
   const [meal, setMeal] = useState(initialMeal);
   const [mode, setMode] = useState(initialMode);
@@ -59,7 +62,8 @@ export function ManualMealModal({ meal: initialMeal, initialMode = 'manual', dat
         <button type="button" className="text-back" onClick={onClose}><ChevronLeft size={19} />{t("Today")}</button>
         <h1 id="manual-title">{t("Log a meal")}</h1>
         <fieldset className="meal-segments meal-input-modes"><legend className="sr-only">{t("Meal entry")}</legend><div>{(['describe', 'manual'] as const).map(value => <button type="button" key={value} disabled={estimating} aria-pressed={mode === value} className={mode === value ? 'is-selected' : ''} onClick={() => { setMode(value); setError(''); }}>{value === 'describe' ? t('Describe') : t('Manual')}</button>)}</div></fieldset>
-        {mode === 'describe' && <>
+        {mode === 'describe' && !connected && <GeminiKeySettings inline onBack={() => setMode('manual')} onConnected={() => setConnected(true)} />}
+        {mode === 'describe' && connected && <>
           <div className="app-field"><label htmlFor="meal-description">{t("Meal description")}</label><textarea id="meal-description" ref={descriptionInput} autoFocus={initialMode === 'describe'} value={description} disabled={estimating} maxLength={2000} rows={4} placeholder={t("e.g. 200 g grilled chicken, 1 cup rice, salad and 1 tbsp olive oil")} onChange={event => {
             setDescription(event.target.value); setError('');
             if (estimate) { setEstimate(null); setName(''); setNutrition({ calories: '', protein: '', carbs: '', fat: '' }); }

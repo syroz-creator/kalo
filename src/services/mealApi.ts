@@ -5,6 +5,7 @@ import { withRequestDeadline } from './requestDeadline';
 import { getMealDescription } from '../utils/mealAnalysis';
 import { UserFacingError } from '../utils/userFacingError';
 import { getLanguage } from '../i18n';
+import { loadUserProfile } from './storage';
 
 const storageKey = 'kalo-gemini-api-key';
 export const scanTimeoutMs = 36000;
@@ -83,6 +84,7 @@ export async function checkGeminiKey(value: string, signal?: AbortSignal) {
 
 async function analyzeMealInput(input: { imageUrl: string; portionDetails?: string } | { description: string }, signal?: AbortSignal) {
   signal?.throwIfAborted();
+  if (loadUserProfile().age < 18) throw new UserFacingError('Gemini estimates are available to adults aged 18 and over. You can still log meals manually.');
   const key = getGeminiKey();
   if (!key) throw new UserFacingError('Add your Gemini API key in Settings > Gemini API key before estimating a meal.');
   if (connection?.key !== key) connection = { key, analyze: createMealAnalyzer(createClient(key)) };
