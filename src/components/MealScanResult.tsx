@@ -4,6 +4,7 @@ import { t } from '../i18n';
 import type { AnalyzedFoodItem, MealAnalysisResult, MealType } from '../types';
 import { MealPortionEditor } from './MealPortionEditor';
 import { MealIngredientForm } from './MealIngredientForm';
+import { MealImprovements } from './MealImprovements';
 import { maxScanWaterMl, waterSlotMl } from '../utils/water';
 
 export interface ScanDraftFields {
@@ -60,6 +61,7 @@ export function MealScanResult({ result, items, draft, onChange, onItemsChange, 
           <p className="scan-result__calories"><strong>{hasFood ? calories : waterMl}</strong><span>{hasFood || !waterMl ? t('kcal') : t('ml')}</span></p>
         </div>
         {hasFood && <div className="scan-result__macros">{(['protein', 'carbs', 'fat'] as const).map(field => <div className={`scan-macro scan-macro--${field}`} key={field}><i /><span>{t(field.charAt(0).toUpperCase() + field.slice(1))}</span><strong>{Number(Number(draft.nutrition[field] || 0).toFixed(1))}</strong><small>{t('g')}</small></div>)}</div>}
+        {hasFood && <MealImprovements items={active} calories={calories} onAdd={onAddIngredient} />}
         <div className="scan-assumptions"><strong>{t('Original portion assumptions')}</strong><p>{t('Estimated from a photo, not measured.')}</p>{result.notes && <p dir="auto">{result.notes}</p>}{result.referenceTip && <p dir="auto">{result.referenceTip}</p>}</div>
         {(result.waterMl ?? 0) > 0 && <label className="scan-water"><Droplets size={23} /><span className="scan-water__copy"><strong>{t('Water estimate')}</strong><small>{waterCups === 1 ? t('About 1 cup') : t('About {cups} cups', { cups: waterCups })}</small></span><span className="scan-water__amount"><input aria-label={t('Water amount (ml)')} type="number" inputMode="decimal" min="0" max={maxScanWaterMl} step="any" value={draft.waterMl} onChange={event => onChange({ waterMl: event.target.value })} /><span>{t('ml')}</span></span></label>}
         {!!result.items.length && <h2 className="scan-result__ingredients-title">{t('Ingredients')}</h2>}

@@ -47,6 +47,10 @@ not by deleting website data. Never uninstall the app merely to update its asset
 
 ## Distribution Later
 
+Kalo Pro uses RevenueCat with Apple monthly/yearly subscriptions. See [PRO.md](PRO.md)
+for RevenueCat entitlement/offering setup, the public SDK key, product IDs and
+sandbox testing. Production prices must be configured in App Store Connect.
+
 Personal-device testing does not publish the app. TestFlight and App Store release
 are separate signing, membership and review workflows. Review provider terms,
 privacy disclosures and the personal-key approach before public distribution.

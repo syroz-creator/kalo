@@ -1,5 +1,7 @@
+import { proMessages } from './proMessages';
 // English source messages remain the fallback; each entry is [Palestinian Arabic, Hebrew].
 export const messages: Record<string, readonly [string, string]> = {
+  ...proMessages,
   "Your key stays on this device. Meal photos and descriptions go directly to Google Gemini when you request an estimate.": ["مفتاحك بضلّ على هالجهاز. صور الوجبات ووصفها بتنبعت مباشرة لـ Google Gemini لما تطلب تقدير.","המפתח נשאר במכשיר הזה. תמונות ותיאורי ארוחות נשלחים ישירות ל-Google Gemini כשמבקשים הערכה."],
   "Allow sending meal photos and descriptions to Google Gemini for estimates.": ["بوافق أبعت صور الوجبات ووصفها لـ Google Gemini للتقدير.","אני מסכים/ה לשלוח תמונות ותיאורי ארוחות ל-Google Gemini להערכות."],
   "Gemini estimates are available to adults aged 18 and over. You can still log meals manually.": ["تقديرات Gemini متاحة للكبار من عمر 18 وفوق. بتقدر تضلّ تسجّل وجباتك يدويّاً.","הערכות Gemini זמינות לבני 18 ומעלה. עדיין אפשר לרשום ארוחות ידנית."],

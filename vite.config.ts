@@ -1,9 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, loadEnv} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const key = process.env.VITE_REVENUECAT_IOS_API_KEY ?? loadEnv(mode, import.meta.dirname, 'VITE_REVENUECAT_IOS_API_KEY').VITE_REVENUECAT_IOS_API_KEY;
+  if (key?.trim() && !/^appl_[A-Za-z0-9]+$/.test(key.trim())) {
+    throw new Error('VITE_REVENUECAT_IOS_API_KEY must be a public Apple SDK key (appl_...), never a secret API key.');
+  }
   return {
     plugins: [react(), tailwindcss()],
     resolve: {

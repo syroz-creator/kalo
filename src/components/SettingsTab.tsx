@@ -1,6 +1,6 @@
 import { t, getLocale } from '../i18n';
 import { useState } from 'react';
-import { Bell, ChevronLeft, ChevronRight, Download, Globe, KeyRound, Moon, RotateCcw, Sun, Target, Trash2, Volume2 } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, Crown, Download, Globe, KeyRound, Moon, RotateCcw, Sun, Target, Trash2, Volume2 } from 'lucide-react';
 import type { LoggedItem, UserProfile } from '../types';
 import { calculateEnergyNeeds } from '../utils/calculator';
 import { PlanSettings } from './PlanSettings';
@@ -9,6 +9,8 @@ import { LanguageSelector } from './LanguageSelector';
 import { ContactSheet } from './ContactSheet';
 import { BackupSettings } from './BackupSettings';
 import type { restoreBackup } from '../services/backup';
+import { ProSubscription } from './ProSubscription';
+import { useProSubscription } from '../utils/useProSubscription';
 
 interface SettingsTabProps {
   profile: UserProfile;
@@ -28,9 +30,11 @@ interface SettingsTabProps {
 }
 
 export function SettingsTab(props: SettingsTabProps) {
-  const [view, setView] = useState<'main' | 'plan' | 'notifications' | 'gemini' | 'recovery' | 'backup'>('main');
+  const [view, setView] = useState<'main' | 'plan' | 'notifications' | 'gemini' | 'recovery' | 'backup' | 'pro'>('main');
+  const subscription = useProSubscription();
   const [permissionError, setPermissionError] = useState('');
   const calories = calculateEnergyNeeds(props.profile).tdee;
+  if (view === 'pro') return <ProSubscription onBack={() => setView('main')} />;
   if (view === 'backup') return <BackupSettings onBack={() => setView('main')} onRestored={props.onRestored} />;
   const enableReminders = async () => {
     setPermissionError('');
@@ -47,6 +51,7 @@ export function SettingsTab(props: SettingsTabProps) {
   return (
     <div className="app-scroll settings-page">
       <h1>{t("Settings")}</h1>
+      <button type="button" className="settings-pro" onClick={() => setView('pro')}><span className="settings-pro__icon"><Crown size={24} /></span><span><strong>{t('Kalo Pro')}<span className="pro-badge">{t('PRO')}</span></strong><small>{subscription.isPro ? t('Your subscription is active') : t('Get more from every meal')}</small></span><ChevronRight size={19} /></button>
       <section><h2>{t("My plan")}</h2><div className="settings-group"><button type="button" className="settings-row" onClick={() => setView('plan')}><span className="settings-symbol"><Target size={21} /></span><span className="settings-row__label">{t("Goals & nutrition")}</span><span className="settings-row__value">{calories.toLocaleString(getLocale())}</span><ChevronRight size={17} /></button></div></section>
       <section><h2>{t("App")}</h2><div className="settings-group">
         <div className="settings-row"><span className="settings-symbol"><Moon size={21} /></span><span className="settings-row__label">{t("Appearance")}</span><button type="button" role="switch" aria-label={t("Dark appearance")} aria-checked={props.theme === 'dark'} onClick={() => props.onThemeChange(props.theme === 'dark' ? 'light' : 'dark')} className="appearance-switch"><Sun size={15} /><Moon size={15} /><span className={props.theme === 'dark' ? 'is-dark' : ''}>{props.theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}</span></button></div>
